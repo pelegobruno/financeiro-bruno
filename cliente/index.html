@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bank | Área do Cliente</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><path fill='%23c9a03d' d='M243.4 2.6l-224 96c-14 6-21.8 21-18.7 35.8S16.8 160 32 160v8c0 13.3 10.7 24 24 24h400c13.3 0 24-10.7 24-24v-8c15.2 0 28.3-10.7 31.3-25.6s-4.8-29.9-18.7-35.8l-224-96c-8-3.4-17.2-3.4-25.2 0zM128 224c-17.7 0-32 14.3-32 32v160c0 17.7 14.3 32 32 32h256c17.7 0 32-14.3 32-32V256c0-17.7-14.3-32-32-32H128zm-32 288v-32h320v32c0 17.7-14.3 32-32 32H128c-17.7 0-32-14.3-32-32z'/></svg>">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+
+<!-- TELA DE LOGIN -->
+<div id="tela-login" class="login-wrapper">
+    <div class="login-box">
+        <div class="logo-icon"><i class="fas fa-university"></i></div>
+        <h2>Acesso do Cliente</h2>
+        <p>Acompanhe seus saldos e limites de crédito.</p>
+        
+        <div class="input-group">
+            <label>Seu Nome Completo ou CPF</label>
+            <input type="text" id="login-usuario" placeholder="Digite seu acesso...">
+        </div>
+        <div class="input-group">
+            <label>Sua Senha</label>
+            <input type="password" id="login-senha" placeholder="••••••••">
+        </div>
+        
+        <button id="btn-entrar" class="btn-banco" style="width: 100%; margin-top: 10px;">
+            <i class="fas fa-sign-in-alt"></i> Entrar no Sistema
+        </button>
+        <span id="login-erro" class="modal-erro" style="text-align: center; margin-top: 15px;"><i class="fas fa-exclamation-circle"></i> Credenciais inválidas.</span>
+    </div>
+</div>
+
+<!-- PAINEL PRINCIPAL -->
+<div id="painel-cliente" class="container" style="display: none;">
+    
+    <div class="header-premium">
+        <div class="logo-area">
+            <div class="logo-icon"><i class="fas fa-university"></i></div>
+            <div class="logo-text">
+                <h1>ÁREA DO CLIENTE</h1>
+                <span id="header-nome-cliente">Bem-vindo, Carregando...</span>
+            </div>
+        </div>
+        <button class="btn-sair" id="btn-sair"><i class="fas fa-power-off"></i> Sair</button>
+    </div>
+
+    <!-- MÉTRICAS DO CLIENTE -->
+    <div class="painel-metricas-cliente">
+        <div class="metric-card atrasado">
+            <div class="metric-icon"><i class="fas fa-file-invoice-dollar"></i></div>
+            <div class="metric-info">
+                <span class="metric-label">Meu Saldo Devedor</span>
+                <span class="metric-value" id="cliente-devido">R$ 0,00</span>
+                <span class="metric-trend">Total em aberto</span>
+            </div>
+        </div>
+        <div class="metric-card recebido">
+            <div class="metric-icon"><i class="fas fa-check-circle"></i></div>
+            <div class="metric-info">
+                <span class="metric-label">Total Pago</span>
+                <span class="metric-value" id="cliente-pago">R$ 0,00</span>
+                <span class="metric-trend">Valor já amortizado</span>
+            </div>
+        </div>
+        <div class="metric-card carteira">
+            <div class="metric-icon"><i class="fas fa-hand-holding-dollar"></i></div>
+            <div class="metric-info">
+                <span class="metric-label">Crédito Disponível</span>
+                <span class="metric-value" style="color: var(--success);" id="cliente-limite">R$ 0,00</span>
+                <span class="metric-trend">Limite pré-aprovado para saque</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="painel-operacoes-cliente">
+        <!-- MEU PERFIL -->
+        <div class="operacao-card perfil-card">
+            <div class="card-header">
+                <i class="fas fa-user-edit"></i>
+                <h3>Meu Perfil</h3>
+            </div>
+            <div class="form-moderno">
+                <p class="form-desc">Mantenha seus dados atualizados para garantir a liberação do seu crédito.</p>
+                <div class="input-group">
+                    <label>Nome Completo</label>
+                    <input type="text" id="editar-nome-cliente" placeholder="Seu nome...">
+                </div>
+                <button id="btn-atualizar-perfil" class="btn-banco">
+                    <i class="fas fa-sync-alt"></i> Atualizar Dados
+                </button>
+            </div>
+        </div>
+
+        <!-- INFORMAÇÕES DE LIMITE E PIX -->
+        <div class="operacao-card solicitacao-card">
+            <div class="card-header">
+                <i class="fas fa-wallet"></i>
+                <h3>Informações & Pix</h3>
+            </div>
+            <div class="form-moderno" style="text-align: center; margin-top: 5px;">
+                <h2 id="display-limite-solicitar" style="color: var(--text-primary); margin-bottom: 2px;">R$ 0,00</h2>
+                <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">Este é o seu limite máximo liberado no momento.</p>
+                
+                <div class="caixa-pix">
+                    <span class="pix-label"><i class="fas fa-qrcode"></i> Chave Pix (E-mail):</span>
+                    <span id="texto-pix-chave" class="pix-chave">psicovitaleco@gmail.com</span>
+                </div>
+
+                <button id="btn-copiar-pix" class="btn-banco" style="margin-top: 0;">
+                    <i class="fas fa-copy"></i> Copiar Chave Pix
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MEU EXTRATO -->
+    <div class="tabela-container">
+        <div class="tabela-header-superior">
+            <div class="tabela-titulo-area">
+                <h3><i class="fas fa-list-ul"></i> Meu Extrato</h3>
+            </div>
+        </div>
+        <div class="tabela-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th><i class="fas fa-tag"></i> Serviço</th>
+                        <th><i class="fas fa-calendar"></i> Vencimento</th>
+                        <th style="text-align: center;"><i class="fas fa-chart-simple"></i> Status</th>
+                        <th style="text-align: right;"><i class="fas fa-coins"></i> Pago</th>
+                        <th style="text-align: right;"><i class="fas fa-credit-card"></i> Restante</th>
+                    </tr>
+                </thead>
+                <tbody id="tabela-corpo-cliente"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script type="module" src="arquivos_js/app_cliente.js"></script>
+</body>
+</html>

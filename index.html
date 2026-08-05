@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bank | Gestão de Crédito</title>
+    <!-- Ícone do navegador arrumado -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><path fill='%23c9a03d' d='M243.4 2.6l-224 96c-14 6-21.8 21-18.7 35.8S16.8 160 32 160v8c0 13.3 10.7 24 24 24h400c13.3 0 24-10.7 24-24v-8c15.2 0 28.3-10.7 31.3-25.6s-4.8-29.9-18.7-35.8l-224-96c-8-3.4-17.2-3.4-25.2 0zM128 224c-17.7 0-32 14.3-32 32v160c0 17.7 14.3 32 32 32h256c17.7 0 32-14.3 32-32V256c0-17.7-14.3-32-32-32H128zm-32 288v-32h320v32c0 17.7-14.3 32-32 32H128c-17.7 0-32-14.3-32-32z'/></svg>">
+    
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+<body>
+
+<div class="container">
+    <!-- HEADER PREMIUM -->
+    <div class="header-premium">
+        <div class="logo-area">
+            <div class="logo-icon">
+                <i class="fas fa-university"></i>
+            </div>
+            <div class="logo-text">
+                <h1>BANK</h1>
+                <span>Gestão de Crédito & Cobranças</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAINEL DE MÉTRICAS BANCÁRIAS -->
+    <div class="painel-metricas">
+        <div class="metric-card total">
+            <div class="metric-icon"><i class="fas fa-dollar-sign"></i></div>
+            <div class="metric-info">
+                <span class="metric-label">Carteira de Recebíveis</span>
+                <span class="metric-value" id="dash-total">R$ 0,00</span>
+                <span class="metric-trend">Saldo total a receber</span>
+            </div>
+        </div>
+        <div class="metric-card atrasado">
+            <div class="metric-icon"><i class="fas fa-exclamation-triangle"></i></div>
+            <div class="metric-info">
+                <span class="metric-label">Dívida Ativa</span>
+                <span class="metric-value" id="dash-atrasado">R$ 0,00</span>
+                <span class="metric-trend">⚠️ Atenção imediata</span>
+            </div>
+        </div>
+        <div class="metric-card recebido">
+            <div class="metric-icon"><i class="fas fa-check-circle"></i></div>
+            <div class="metric-info">
+                <span class="metric-label">Fluxo de Caixa</span>
+                <span class="metric-value" id="dash-pago">R$ 0,00</span>
+                <span class="metric-trend">Total já recebido</span>
+            </div>
+        </div>
+        <div class="metric-card carteira">
+            <div class="metric-icon"><i class="fas fa-chart-pie"></i></div>
+            <div class="metric-info">
+                <span class="metric-label">Taxa de Inadimplência</span>
+                <span class="metric-value" id="taxa-inadimplencia">0%</span>
+                <span class="metric-trend">Sobre carteira total</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAINEL DE RENTABILIDADE -->
+    <div class="painel-rentabilidade">
+        <div class="metric-card capital">
+            <div class="metric-icon"><i class="fas fa-vault"></i></div>
+            <div class="metric-info">
+                <span class="metric-label">Capital Investido</span>
+                <span class="metric-value" id="dash-capital">R$ 0,00</span>
+                <span class="metric-trend">Dinheiro original emprestado</span>
+            </div>
+        </div>
+        <div class="metric-card lucro">
+            <div class="metric-icon"><i class="fas fa-hand-holding-dollar"></i></div>
+            <div class="metric-info">
+                <span class="metric-label">Lucro Projetado</span>
+                <span class="metric-value" id="dash-lucro">R$ 0,00</span>
+                <span class="metric-trend">Rendimento esperado (Juros + Taxas)</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- GRÁFICOS DINÂMICOS (GRID TRIPLA) -->
+    <div class="grafico-wrapper">
+        <div class="grafico-header">
+            <h3><i class="fas fa-chart-area"></i> Dashboard Analítico da Carteira</h3>
+        </div>
+        <div class="graficos-grid">
+            <div class="grafico-item">
+                <h4 class="grafico-titulo"><i class="fas fa-chart-pie"></i> Distribuição</h4>
+                <div class="grafico-container">
+                    <canvas id="graficoResumo"></canvas>
+                </div>
+            </div>
+            <div class="grafico-item">
+                <h4 class="grafico-titulo"><i class="fas fa-spider"></i> Perfil de Risco (Teia)</h4>
+                <div class="grafico-container">
+                    <canvas id="graficoRadar"></canvas>
+                </div>
+            </div>
+            <div class="grafico-item">
+                <h4 class="grafico-titulo"><i class="fas fa-chart-line"></i> Projeção de Caixa (Nível)</h4>
+                <div class="grafico-container">
+                    <canvas id="graficoLinha"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAINEL DE OPERAÇÕES (2 COLUNAS: Lançamento e IA Expandida) -->
+    <div class="painel-operacoes">
+        
+        <!-- FORMULÁRIO DE LANÇAMENTO -->
+        <div class="operacao-card registro">
+            <div class="card-header">
+                <i class="fas fa-file-invoice-dollar"></i>
+                <h3>Novo Lançamento</h3>
+            </div>
+            <div class="form-moderno">
+                <div class="input-group">
+                    <label><i class="fas fa-tag"></i> Tipo</label>
+                    <select id="tipo" onchange="verificarParcelas()">
+                        <option value="Crédito">🏦 Crédito</option>
+                        <option value="Pix">⚡ Pix</option>
+                        <option value="Empréstimo">📋 Empréstimo</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label><i class="fas fa-user"></i> Cliente</label>
+                    <input type="text" id="descricao" list="lista-nomes" placeholder="Nome do pagador" autocomplete="off">
+                    <datalist id="lista-nomes"></datalist>
+                </div>
+                <div class="input-group">
+                    <label><i class="fas fa-calculator"></i> Parcelas</label>
+                    <input type="number" id="parcelas" placeholder="Nº de parcelas" min="1" value="1">
+                </div>
+                <div class="input-row">
+                    <div class="input-group">
+                        <label><i class="fas fa-money-bill-wave"></i> Valor Original</label>
+                        <input type="number" id="valor" placeholder="R$ 0,00" step="0.01">
+                    </div>
+                    <div class="input-group">
+                        <label><i class="fas fa-percent"></i> Juros (%)</label>
+                        <input type="number" id="taxa_juros" placeholder="% ao mês" step="0.1">
+                    </div>
+                </div>
+                <div class="input-row">
+                    <div class="input-group">
+                        <label><i class="fas fa-plus-circle"></i> Taxa Adicional</label>
+                        <input type="number" id="acrescimo" placeholder="R$ 0,00" step="0.01">
+                    </div>
+                    <div class="input-group">
+                        <label><i class="fas fa-calendar-alt"></i> Vencimento</label>
+                        <input type="date" id="data_vencimento">
+                    </div>
+                </div>
+                <button id="btn-salvar" class="btn-banco" onclick="salvarRegistro()">
+                    <i class="fas fa-save"></i> Registrar Cobrança
+                </button>
+            </div>
+        </div>
+
+        <!-- CÉREBRO CENTRAL DA IA (AGORA MAIOR E SEM O BADGE PREMIUM) -->
+        <div class="operacao-card ia-financeira">
+            <div class="card-header">
+                <i class="fas fa-robot"></i>
+                <h3>BANK</h3>
+            </div>
+            <div class="ia-container">
+                <div class="ia-selector">
+                    <label><i class="fas fa-user-tie"></i> Selecione o Cliente ou Varredura</label>
+                    <select id="ia-cliente-select" onchange="analisarClienteComIA()">
+                        <option value="">🔍 Escolha um cliente...</option>
+                    </select>
+                </div>
+                
+                <div id="ia-loading" style="display: none; padding: 30px; text-align: center; color: var(--accent-gold);">
+                    <i class="fas fa-circle-notch fa-spin" style="font-size: 40px; margin-bottom: 15px;"></i>
+                    <p id="ia-loading-text" style="font-family: monospace; font-size: 13px;">Estabelecendo conexão neural...</p>
+                </div>
+
+                <div id="ia-resultado" class="ia-resultado" style="display: none;">
+                    <div class="ia-header">
+                        <div class="ia-avatar"><i class="fas fa-brain"></i></div>
+                        <div class="ia-status">
+                            <span class="ia-nome">BANK</span>
+                            <span class="ia-online">● Online</span>
+                        </div>
+                        <div class="ia-actions">
+                            <button class="ia-copiar" onclick="copiarAnaliseIA()">
+                                <i class="fas fa-copy"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="ia-conteudo" class="ia-conteudo"></div>
+                    <div class="ia-footer">
+                        <i class="fas fa-microchip"></i>
+                        <span>Análise baseada em dados reais</span>
+                    </div>
+                </div>
+                
+                <div id="ia-placeholder" class="ia-placeholder">
+                    <i class="fas fa-chart-line"></i>
+                    <h4>Análise Estratégica</h4>
+                    <p>Selecione um cliente ou execute a Varredura Global para acionar o mapeamento neural de riscos e analogias contábeis.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TABELA DE OPERAÇÕES COM FILTROS INCORPORADOS NO CABEÇALHO -->
+    <div class="tabela-container">
+        <div class="tabela-header-superior">
+            <div class="tabela-titulo-area">
+                <h3><i class="fas fa-list-ul"></i> Extrato de Operações</h3>
+            </div>
+            
+            <div class="filtros-inline">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="filtro-nome" placeholder="Buscar cliente..." onkeyup="filtrarInterface()">
+                </div>
+                <div class="select-box">
+                    <i class="fas fa-filter"></i>
+                    <select id="filtro-status" onchange="filtrarInterface()">
+                        <option value="todos">Todos os Status</option>
+                        <option value="em-dia">Em dia</option>
+                        <option value="atrasado">Dívida Ativa</option>
+                        <option value="quitado">Quitados</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        
+        <div class="tabela-scroll">
+            <table>
+                <thead>
+                    <tr>
+                        <th><i class="fas fa-user"></i> Cliente</th>
+                        <th><i class="fas fa-calendar"></i> Vencimento</th>
+                        <th style="text-align: center;"><i class="fas fa-chart-simple"></i> Status</th>
+                        <th style="text-align: right;"><i class="fas fa-coins"></i> Amortizado</th>
+                        <th style="text-align: right;"><i class="fas fa-credit-card"></i> Saldo Devedor</th>
+                        <th style="text-align: right;"><i class="fas fa-cogs"></i> Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="tabela-corpo"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL DE PAGAMENTO/TAXA -->
+<div id="meuModal" class="modal-overlay">
+    <div class="modal-box">
+        <div class="modal-header">
+            <i class="fas fa-credit-card" id="modal-icon"></i>
+            <h3 id="modal-titulo">Título</h3>
+        </div>
+        <p id="modal-texto" class="modal-body">Descrição</p>
+        <div class="modal-input-wrapper">
+            <span class="input-symbol">R$</span>
+            <input type="number" id="modal-input-valor" class="modal-input" placeholder="0,00" step="0.01">
+        </div>
+        <span id="modal-erro" class="modal-erro"><i class="fas fa-exclamation-circle"></i> Valor inválido.</span>
+        <div class="modal-actions">
+            <button class="btn-cancelar" onclick="fecharModal()"><i class="fas fa-times"></i> Cancelar</button>
+            <button id="modal-btn-confirmar" class="btn-principal"><i class="fas fa-check"></i> Confirmar</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL DE DETALHES -->
+<div id="modalDetalhes" class="modal-overlay">
+    <div class="modal-box detalhes-box">
+        <div class="modal-header">
+            <i class="fas fa-chart-line"></i>
+            <h3 id="detalhes-titulo">Detalhes da Dívida</h3>
+        </div>
+        <div id="detalhes-conteudo" class="detalhes-conteudo"></div>
+        <div class="modal-actions">
+            <button class="btn-cancelar" onclick="fecharModalDetalhes()"><i class="fas fa-arrow-left"></i> Voltar</button>
+        </div>
+    </div>
+</div>
+
+<script type="module" src="app.js"></script>
+
+</body>
+</html>
