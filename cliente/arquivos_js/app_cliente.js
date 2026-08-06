@@ -88,9 +88,10 @@ function processarDadosCliente() {
     const dadosTabela = [];
 
     registrosCliente.forEach(reg => {
+        // Garantindo precisão absoluta na extração da data
         const partesData = reg.data_vencimento.split('-');
-        const dataVencimento = new Date(partesData[0], partesData[1] - 1, partesData[2]);
-        dataVencimento.setHours(0, 0, 0, 0);
+        const dataVencimentoOriginal = new Date(partesData[0], partesData[1] - 1, partesData[2]);
+        dataVencimentoOriginal.setHours(0, 0, 0, 0);
 
         let valorBase = reg.valor;
         let dividaOriginal = valorBase + (reg.acrescimo_manual || 0);
@@ -105,7 +106,7 @@ function processarDadosCliente() {
             if (parcelasPagas > parcelas) parcelasPagas = parcelas;
         }
 
-        let dataVencimentoEfetiva = new Date(dataVencimento.getTime());
+        let dataVencimentoEfetiva = new Date(dataVencimentoOriginal.getTime());
         dataVencimentoEfetiva.setMonth(dataVencimentoEfetiva.getMonth() + parcelasPagas);
 
         let diasAtraso = 0;
@@ -124,12 +125,14 @@ function processarDadosCliente() {
         totalDevido += saldoDevedorReg; totalOriginal += reg.valor; totalPago += valorPagoReg; totalTaxasAvulsas += (reg.acrescimo_manual || 0);
         if (isQuitado) qtdQuitadas++; else if (diasAtraso > 0) qtdAtrasadas++;
 
-        const diaV = String(dataVencimentoEfetiva.getDate()).padStart(2, '0');
-        const mesV = String(dataVencimentoEfetiva.getMonth() + 1).padStart(2, '0');
-        const anoV = dataVencimentoEfetiva.getFullYear();
+        // Formatação das Datas (Original vs Nova Parcela)
+        const strOriginal = `${String(dataVencimentoOriginal.getDate()).padStart(2, '0')}/${String(dataVencimentoOriginal.getMonth() + 1).padStart(2, '0')}/${dataVencimentoOriginal.getFullYear()}`;
+        const strEfetiva = `${String(dataVencimentoEfetiva.getDate()).padStart(2, '0')}/${String(dataVencimentoEfetiva.getMonth() + 1).padStart(2, '0')}/${dataVencimentoEfetiva.getFullYear()}`;
 
         dadosTabela.push({
-            ...reg, dataFormatada: parcelasPagas >= parcelas ? "Finalizado" : `${diaV}/${mesV}/${anoV}`,
+            ...reg, 
+            dataOriginalStr: strOriginal,
+            dataEfetivaStr: strEfetiva,
             isQuitado, diasAtraso, saldoDevedorReg, dividaTotalReg, parcelasPagas
         });
     });
@@ -172,10 +175,18 @@ function renderizarTabelaCliente(dados) {
         let parcelasRestantes = (reg.parcelas || 1) - (reg.parcelasPagas || 0);
         let infoParcelas = (reg.parcelas > 1 && !reg.isQuitado) ? `<span class="info-extra">Restam ${parcelasRestantes} parc.</span>` : "";
 
+        // Lógica de exibição da data para o cliente
+        let dataExibicao = reg.dataOriginalStr;
+        if (reg.isQuitado) {
+            dataExibicao = "Finalizado";
+        } else if (reg.parcelasPagas > 0) {
+            dataExibicao = `${reg.dataEfetivaStr} <br><span style="font-size: 9px; color: var(--accent-gold); font-weight: bold;">(Próx. Parcela)</span>`;
+        }
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td><strong>${reg.tipo}</strong></td>
-            <td>${reg.dataFormatada}</td>
+            <td>${dataExibicao}</td>
             <td style="text-align: center;"><span class="${badgeClass}">${statusTexto}</span></td>
             <td style="color: var(--success-dark); font-weight: 700; text-align: right;">R$ ${(reg.valor_pago || 0).toFixed(2)}</td>
             <td style="text-align: right;"><span class="valor-destaque">R$ ${reg.saldoDevedorReg.toFixed(2)}</span> ${infoParcelas}</td>
@@ -201,7 +212,7 @@ async function atualizarNomePerfil() {
             reg.descricao = novoNome; 
         }
         clienteLogado = novoNome;
-        sessionStorage.setItem('clienteLogado', clienteLogado); // Atualiza na memória também
+        sessionStorage.setItem('clienteLogado', clienteLogado);
         document.getElementById('header-nome-cliente').innerText = `Bem-vindo, ${clienteLogado}`;
         alert("Perfil atualizado com sucesso!");
     } catch (error) { alert("Erro na conexão com o servidor."); } 

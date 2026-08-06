@@ -1,6 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, getDoc, updateDoc, doc, increment, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
+// Configurações do Firebase
 const firebaseConfig = {
     apiKey: "AIzaSyCrNmckgyxPHWY2F_mIACKxVnrtidqJOXA",
     authDomain: "financeiro-brunno.firebaseapp.com",
@@ -44,10 +45,18 @@ document.getElementById('usuario-admin').addEventListener('keypress', (e) => { i
 
 verificarSessaoAdmin();
 
+// ==========================================
+// VARIÁVEIS GLOBAIS
+// ==========================================
 let idEditando = null;
 let listaRegistrosProcessados = [];
-let chartResumo = null, chartRadar = null, chartLinha = null;
+let chartResumo = null;
+let chartRadar = null;
+let chartLinha = null;
 
+// ==========================================
+// FUNÇÕES DE CONTROLE DE MODAIS
+// ==========================================
 function fecharModal() { document.getElementById('meuModal').style.display = 'none'; }
 function fecharModalDetalhes() { document.getElementById('modalDetalhes').style.display = 'none'; }
 
@@ -56,37 +65,51 @@ function abrirModal(titulo, texto, corBotao, acaoConfirmar, precisaInput = true)
     document.getElementById('modal-texto').innerText = texto;
     const inputValor = document.getElementById('modal-input-valor');
     inputValor.value = '';
+    
     const inputWrapper = document.querySelector('.modal-input-wrapper');
     if(inputWrapper) inputWrapper.style.display = precisaInput ? 'block' : 'none';
+    
     document.getElementById('modal-erro').style.display = 'none';
+    
     const btnConfirmar = document.getElementById('modal-btn-confirmar');
     btnConfirmar.style.backgroundColor = corBotao;
     btnConfirmar.disabled = false; 
     btnConfirmar.innerHTML = '<i class="fas fa-check"></i> Confirmar'; 
-    btnConfirmar.onclick = async () => { if (!btnConfirmar.disabled) await acaoConfirmar(); };
+    
+    btnConfirmar.onclick = async () => {
+        if (!btnConfirmar.disabled) await acaoConfirmar();
+    };
+
     document.getElementById('meuModal').style.display = 'flex';
     if(precisaInput) inputValor.focus();
 }
 
+// ==========================================
+// AUDITORIA E RELATÓRIO DE TRANSAÇÕES
+// ==========================================
 async function verDetalhes(id, nome) {
     try {
         const docRef = doc(db, "registros", id);
         const docSnap = await getDoc(docRef); 
-        if (!docSnap.exists()) return alert("Operação não localizada.");
+        
+        if (!docSnap.exists()) return alert("Operação não localizada no servidor.");
         const registro = { id: docSnap.id, ...docSnap.data() };
+        
         const historico = registro.historico || [];
         const valorOriginal = registro.valor;
         const taxaJuros = registro.taxa_juros || 0;
         const acrescimoManual = registro.acrescimo_manual || 0;
         const valorPago = registro.valor_pago || 0;
         const parcelas = registro.parcelas || 1;
-        const hoje = new Date(); hoje.setHours(0,0,0,0);
+        
+        const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
         const partesData = registro.data_vencimento.split('-');
         const dataVencimento = new Date(partesData[0], partesData[1] - 1, partesData[2]);
         dataVencimento.setHours(0, 0, 0, 0);
 
         let dividaOriginalTotal = valorOriginal + acrescimoManual;
         let valorParcelaBase = dividaOriginalTotal / parcelas;
+        
         let parcelasPagas = 0;
         if (parcelas > 1 && valorPago > 0) {
             parcelasPagas = Math.floor((valorPago + 0.01) / valorParcelaBase);
@@ -95,6 +118,7 @@ async function verDetalhes(id, nome) {
 
         let dataVencimentoEfetiva = new Date(dataVencimento.getTime());
         dataVencimentoEfetiva.setMonth(dataVencimentoEfetiva.getMonth() + parcelasPagas);
+        
         let valorComJuros = valorOriginal;
         let diasAtraso = 0;
         
@@ -103,18 +127,26 @@ async function verDetalhes(id, nome) {
             if (diffTempo > 0) {
                 diasAtraso = Math.floor(diffTempo / (1000 * 60 * 60 * 24));
                 const mesesAtraso = Math.floor(diasAtraso / 30);
-                if (mesesAtraso > 0 && taxaJuros > 0) valorComJuros = valorOriginal * Math.pow((1 + (taxaJuros / 100)), mesesAtraso);
+                if (mesesAtraso > 0 && taxaJuros > 0) {
+                    valorComJuros = valorOriginal * Math.pow((1 + (taxaJuros / 100)), mesesAtraso);
+                }
             }
         }
+        
         const dividaTotal = valorComJuros + acrescimoManual;
         const saldoDevedor = dividaTotal - valorPago;
-        const proximoVencimentoStr = parcelasPagas >= parcelas ? "Quitado" : `${String(dataVencimentoEfetiva.getDate()).padStart(2, '0')}/${String(dataVencimentoEfetiva.getMonth() + 1).padStart(2, '0')}/${dataVencimentoEfetiva.getFullYear()}`;
+
+        const diaV = String(dataVencimentoEfetiva.getDate()).padStart(2, '0');
+        const mesV = String(dataVencimentoEfetiva.getMonth() + 1).padStart(2, '0');
+        const anoV = dataVencimentoEfetiva.getFullYear();
+        const proximoVencimentoStr = parcelasPagas >= parcelas ? "Quitado" : `${diaV}/${mesV}/${anoV}`;
         
         let html = `
             <div class="resumo-detalhes">
                 <p><strong><i class="fas fa-user"></i> Devedor:</strong> <span>${registro.descricao}</span></p>
                 <p><strong><i class="fas fa-tag"></i> Alocação:</strong> <span>${registro.tipo}</span></p>
-                <p><strong><i class="fas fa-calendar"></i> Próximo Venc.:</strong> <span>${proximoVencimentoStr}</span></p>
+                <p><strong><i class="fas fa-calendar"></i> Vencimento Original:</strong> <span>${registro.data_vencimento.split('-').reverse().join('/')}</span></p>
+                <p><strong><i class="fas fa-calendar-check"></i> Próxima Cobrança:</strong> <span>${proximoVencimentoStr}</span></p>
                 <p><strong><i class="fas fa-list-ol"></i> Progresso:</strong> <span>${parcelasPagas} de ${parcelas} parcelas pagas</span></p>
                 <p><strong><i class="fas fa-money-bill"></i> Capital Original:</strong> <span>R$ ${valorOriginal.toFixed(2)}</span></p>
                 <p><strong><i class="fas fa-percent"></i> Indexador Juros:</strong> <span>${taxaJuros}% /mês</span></p>
@@ -128,16 +160,26 @@ async function verDetalhes(id, nome) {
         `;
         
         if (historico.length > 0) {
-            html += `<h4 style="margin: 20px 0 10px 0; color: var(--primary); font-weight: 800; font-size: 13px; text-transform: uppercase;"><i class="fas fa-history"></i> Histórico Contábil</h4>`;
+            html += `<h4 style="margin: 20px 0 10px 0; color: var(--primary); font-weight: 800; font-size: 13px; text-transform: uppercase;"> Histórico Contábil</h4>`;
             historico.forEach(item => {
                 const valorColor = item.tipo === 'taxa' ? 'positivo' : 'negativo';
                 const sinal = item.tipo === 'taxa' ? '+' : '-';
-                html += `<div class="historico-item"><div><div class="historico-descricao">${item.descricao}</div><div class="historico-data"><i class="far fa-clock"></i> ${item.data}</div></div><div class="historico-valor ${valorColor}">${sinal} R$ ${item.valor.toFixed(2)}</div></div>`;
+                html += `
+                    <div class="historico-item">
+                        <div>
+                            <div class="historico-descricao">${item.descricao}</div>
+                            <div class="historico-data"><i class="far fa-clock"></i> ${item.data}</div>
+                        </div>
+                        <div class="historico-valor ${valorColor}">${sinal} R$ ${item.valor.toFixed(2)}</div>
+                    </div>
+                `;
             });
         }
+        
         document.getElementById('detalhes-titulo').innerHTML = `Extrato Analítico de Conta`;
         document.getElementById('detalhes-conteudo').innerHTML = html;
         document.getElementById('modalDetalhes').style.display = 'flex';
+        
     } catch (erro) { console.error(erro); }
 }
 
@@ -146,7 +188,9 @@ async function adicionarAoHistorico(id, tipo, descricao, valor) {
         const docRef = doc(db, "registros", id);
         const docSnap = await getDoc(docRef); 
         let historicoExistente = docSnap.exists() ? (docSnap.data().historico || []) : [];
-        const novoHistorico = [...historicoExistente, { tipo, descricao, valor, data: new Date().toLocaleString('pt-BR') }];
+        const novoHistorico = [...historicoExistente, {
+            tipo: tipo, descricao: descricao, valor: valor, data: new Date().toLocaleString('pt-BR')
+        }];
         await updateDoc(docRef, { historico: novoHistorico });
     } catch (erro) { console.error(erro); }
 }
@@ -158,6 +202,9 @@ function verificarParcelas() {
     if (tipo !== 'Crédito') inputParcelas.value = 1;
 }
 
+// ==========================================
+// PROCESSAMENTO DO FLUXO DE CAIXA
+// ==========================================
 async function carregarDadosDoFirebase() {
     try {
         const querySnapshot = await getDocs(collection(db, "registros"));
@@ -166,21 +213,29 @@ async function carregarDadosDoFirebase() {
 
         querySnapshot.forEach((doc) => {
             const reg = doc.data(); reg.id = doc.id;
+            
+            // Corrige o bug de Timezone que avança a data pegando a data EXATA digitada
             const partesData = reg.data_vencimento.split('-');
-            const dataVencimento = new Date(partesData[0], partesData[1] - 1, partesData[2]);
-            dataVencimento.setHours(0, 0, 0, 0);
+            const dataVencimentoOriginal = new Date(partesData[0], partesData[1] - 1, partesData[2]);
+            dataVencimentoOriginal.setHours(0, 0, 0, 0);
 
-            let diasAtraso = 0, valorBase = reg.valor, dividaOriginal = valorBase + (reg.acrescimo_manual || 0);
-            let valorPago = reg.valor_pago || 0, parcelas = reg.parcelas || 1, valorParcelaOriginal = dividaOriginal / parcelas;
+            let diasAtraso = 0;
+            let valorBase = reg.valor;
+            let dividaOriginal = valorBase + (reg.acrescimo_manual || 0);
+            let valorPago = reg.valor_pago || 0;
+            let parcelas = reg.parcelas || 1;
+            let valorParcelaOriginal = dividaOriginal / parcelas;
+
             const isQuitado = valorPago >= (dividaOriginal - 0.01);
 
             let parcelasPagas = 0;
+            // Se for carnê e houver pagamento, avança os meses
             if (!isQuitado && parcelas > 1 && valorPago > 0) {
                 parcelasPagas = Math.floor((valorPago + 0.01) / valorParcelaOriginal);
                 if (parcelasPagas > parcelas) parcelasPagas = parcelas;
             }
 
-            let dataVencimentoEfetiva = new Date(dataVencimento.getTime());
+            let dataVencimentoEfetiva = new Date(dataVencimentoOriginal.getTime());
             dataVencimentoEfetiva.setMonth(dataVencimentoEfetiva.getMonth() + parcelasPagas);
 
             if (!isQuitado) {
@@ -188,19 +243,28 @@ async function carregarDadosDoFirebase() {
                 if (diffTempo > 0) {
                     diasAtraso = Math.floor(diffTempo / (1000 * 60 * 60 * 24));
                     const mesesAtraso = Math.floor(diasAtraso / 30);
-                    if (mesesAtraso > 0 && reg.taxa_juros > 0) valorBase = valorBase * Math.pow((1 + (reg.taxa_juros / 100)), mesesAtraso);
+                    if (mesesAtraso > 0 && reg.taxa_juros > 0) {
+                        valorBase = valorBase * Math.pow((1 + (reg.taxa_juros / 100)), mesesAtraso);
+                    }
                 }
             }
 
             const dividaTotal = valorBase + (reg.acrescimo_manual || 0);
             let saldoDevedor = Math.max(0, dividaTotal - valorPago);
-            const diaV = String(dataVencimentoEfetiva.getDate()).padStart(2, '0');
-            const mesV = String(dataVencimentoEfetiva.getMonth() + 1).padStart(2, '0');
-            const anoV = dataVencimentoEfetiva.getFullYear();
+            const valorParcelaAtual = dividaTotal / parcelas;
+
+            // Datas Formatadas para exibição clara na tabela
+            const strOriginal = `${String(dataVencimentoOriginal.getDate()).padStart(2, '0')}/${String(dataVencimentoOriginal.getMonth() + 1).padStart(2, '0')}/${dataVencimentoOriginal.getFullYear()}`;
+            const strEfetiva = `${String(dataVencimentoEfetiva.getDate()).padStart(2, '0')}/${String(dataVencimentoEfetiva.getMonth() + 1).padStart(2, '0')}/${dataVencimentoEfetiva.getFullYear()}`;
 
             listaRegistrosProcessados.push({
-                ...reg, dataFormatada: `${diaV}/${mesV}/${anoV}`, mesAnoSort: `${anoV}${mesV}`, mesAnoLabel: `${mesV}/${anoV}`, 
-                diasAtraso, isQuitado, dividaTotal, saldoDevedor, valorParcelaAtual: dividaTotal / parcelas, parcelasPagas, parcelas
+                ...reg, 
+                dataOriginalStr: strOriginal,
+                dataEfetivaStr: strEfetiva,
+                mesAnoSort: `${dataVencimentoEfetiva.getFullYear()}${String(dataVencimentoEfetiva.getMonth() + 1).padStart(2, '0')}`,
+                mesAnoLabel: `${String(dataVencimentoEfetiva.getMonth() + 1).padStart(2, '0')}/${dataVencimentoEfetiva.getFullYear()}`, 
+                diasAtraso, isQuitado, dividaTotal, saldoDevedor, valorParcelaAtual,
+                parcelasPagas, parcelas
             });
         });
 
@@ -213,7 +277,8 @@ async function carregarDadosDoFirebase() {
 function atualizarDatalistNomes() {
     const datalistNomes = document.getElementById('lista-nomes');
     datalistNomes.innerHTML = "";
-    [...new Set(listaRegistrosProcessados.map(r => r.descricao))].forEach(nome => {
+    const nomesUnicos = [...new Set(listaRegistrosProcessados.map(r => r.descricao))];
+    nomesUnicos.forEach(nome => {
         const option = document.createElement('option'); option.value = nome; datalistNomes.appendChild(option);
     });
 }
@@ -243,12 +308,19 @@ function renderizarTabela(dados) {
     dados.forEach(reg => {
         let badgeClass = reg.isQuitado ? "badge quitado" : (reg.diasAtraso > 0 ? "badge atrasado" : "badge em-dia");
         let statusTexto = reg.isQuitado ? "Quitado" : (reg.diasAtraso > 0 ? `Atraso (${reg.diasAtraso}d)` : "Em dia");
-        let infoParcelas = (reg.parcelas > 1 && !reg.isQuitado) ? `<span class="info-extra">Restam ${reg.parcelas - reg.parcelasPagas}x de R$ ${reg.valorParcelaAtual.toFixed(2)}</span>` : "";
+        let parcelasRestantes = reg.parcelas - reg.parcelasPagas;
+        let infoParcelas = (reg.parcelas > 1 && !reg.isQuitado) ? `<span class="info-extra">Restam ${parcelasRestantes}x de R$ ${reg.valorParcelaAtual.toFixed(2)}</span>` : "";
+
+        // Mostra a data efetiva e avisa se pulou de mês por pagamento de parcela!
+        let dataExibicao = reg.dataOriginalStr;
+        if (reg.parcelasPagas > 0 && !reg.isQuitado) {
+            dataExibicao = `${reg.dataEfetivaStr} <br><span style="font-size: 10px; color: var(--accent-gold); font-weight: bold;">(Próx. Parcela)</span>`;
+        }
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td><strong>${reg.descricao}</strong><span class="info-extra">${reg.tipo}</span></td>
-            <td>${reg.dataFormatada}</td>
+            <td>${dataExibicao}</td>
             <td><span class="${badgeClass}">${statusTexto}</span></td>
             <td style="color: var(--success-dark); font-weight: 700;">R$ ${(reg.valor_pago || 0).toFixed(2)}</td>
             <td><span class="valor-destaque">R$ ${reg.saldoDevedor.toFixed(2)}</span> ${infoParcelas}</td>
@@ -339,6 +411,9 @@ function renderizarGrafico(dados) {
     }
 }
 
+// ==========================================
+// C.R.U.D DE DADOS
+// ==========================================
 async function salvarRegistro() {
     const btn = document.getElementById('btn-salvar'); if (btn.disabled) return; 
     const tipo = document.getElementById('tipo').value, descricao = document.getElementById('descricao').value;
@@ -396,16 +471,42 @@ function deletarRegistro(id, nome) {
     }, false);
 }
 
+// ==========================================
+// CÉREBRO CENTRAL DE INTELIGÊNCIA ARTIFICIAL (RESTAURO 100%)
+// ==========================================
 function atualizarListaClientesIA() {
-    const selectIA = document.getElementById('ia-cliente-select'); if (!selectIA) return;
-    const clientesUnicos = [...new Map(listaRegistrosProcessados.map(r => [r.descricao, { nome: r.descricao, totalDevido: 0 }])).values()];
-    clientesUnicos.forEach(c => { c.totalDevido = listaRegistrosProcessados.filter(r => r.descricao === c.nome).reduce((sum, r) => sum + r.saldoDevedor, 0); });
+    const selectIA = document.getElementById('ia-cliente-select');
+    if (!selectIA) return;
+    
+    const clientesUnicos = [...new Map(listaRegistrosProcessados.map(r => [r.descricao, {
+        nome: r.descricao, totalDevido: 0, totalPago: 0, qtdOperacoes: 0, operacoes: []
+    }])).values()];
+    
+    clientesUnicos.forEach(cliente => {
+        const registrosCliente = listaRegistrosProcessados.filter(r => r.descricao === cliente.nome);
+        cliente.qtdOperacoes = registrosCliente.length;
+        cliente.totalDevido = registrosCliente.reduce((sum, r) => sum + r.saldoDevedor, 0);
+        cliente.totalPago = registrosCliente.reduce((sum, r) => sum + (r.valor_pago || 0), 0);
+        cliente.operacoes = registrosCliente;
+    });
+    
     clientesUnicos.sort((a, b) => b.totalDevido - a.totalDevido);
-    selectIA.innerHTML = '<option value="">⚙️ Selecione para analisar...</option><option value="VARREDURA_GLOBAL">🌐 VARREDURA GLOBAL DA CARTEIRA</option>';
-    clientesUnicos.forEach(c => {
-        if (c.nome && c.nome.trim() !== '') {
-            const option = document.createElement('option'); option.value = c.nome;
-            option.textContent = `${c.totalDevido > 0 ? '⚠️' : '✅'} ${c.nome} - Dívida: R$ ${c.totalDevido.toFixed(2)}`;
+    
+    selectIA.innerHTML = '<option value="">⚙️ Aguardando comando de varredura...</option>';
+    
+    const optGeral = document.createElement('option');
+    optGeral.value = "VARREDURA_GLOBAL";
+    optGeral.innerHTML = "🌐 VARREDURA GLOBAL DA CARTEIRA";
+    optGeral.style.fontWeight = "bold";
+    optGeral.style.color = "var(--accent-gold)";
+    selectIA.appendChild(optGeral);
+    
+    clientesUnicos.forEach(cliente => {
+        if (cliente.nome && cliente.nome.trim() !== '') {
+            const option = document.createElement('option');
+            option.value = cliente.nome;
+            const emoji = cliente.totalDevido > 0 ? '⚠️' : (cliente.totalPago > 0 ? '✅' : '📋');
+            option.textContent = `${emoji} ${cliente.nome} - Dívida: R$ ${cliente.totalDevido.toFixed(2)}`;
             selectIA.appendChild(option);
         }
     });
@@ -413,45 +514,244 @@ function atualizarListaClientesIA() {
 
 async function iniciarAnaliseIA() {
     const valorSelecionado = document.getElementById('ia-cliente-select').value;
-    document.getElementById('ia-resultado').style.display = 'none'; document.getElementById('ia-placeholder').style.display = 'none';
-    if (!valorSelecionado) return document.getElementById('ia-placeholder').style.display = 'block';
+    
+    document.getElementById('ia-resultado').style.display = 'none';
+    document.getElementById('ia-placeholder').style.display = 'none';
+    
+    if (!valorSelecionado) {
+        document.getElementById('ia-placeholder').style.display = 'block';
+        return;
+    }
     
     document.getElementById('ia-loading').style.display = 'block';
-    await new Promise(r => setTimeout(r, 1000));
+    const msg = document.getElementById('ia-loading-text');
+    
+    const mensagensDeEspera = [
+        "Mapeando vetores de crédito da base de dados...",
+        "Calculando métricas de solvência e liquidez imediata...",
+        "Avaliando o impacto do ROI sobre a carteira ativa...",
+        "Calculando teto máximo de crédito e exposição...",
+        "Estruturando relatório executivo final..."
+    ];
+    
+    for (let i = 0; i < mensagensDeEspera.length; i++) {
+        msg.innerText = mensagensDeEspera[i];
+        await new Promise(r => setTimeout(r, 550)); 
+    }
+    
     document.getElementById('ia-loading').style.display = 'none';
     
-    if (valorSelecionado === "VARREDURA_GLOBAL") gerarRelatorioGlobal();
-    else gerarRelatorioCliente(valorSelecionado);
+    if (valorSelecionado === "VARREDURA_GLOBAL") {
+        gerarRelatorioGlobal();
+    } else {
+        gerarRelatorioCliente(valorSelecionado);
+    }
 }
 
 function gerarRelatorioGlobal() {
+    if (listaRegistrosProcessados.length === 0) {
+        mostrarErroIA("Carteira sem registros para análise de big data.");
+        return;
+    }
+    
     const totalDevido = listaRegistrosProcessados.reduce((sum, r) => sum + r.saldoDevedor, 0);
+    const totalPago = listaRegistrosProcessados.reduce((sum, r) => sum + (r.valor_pago || 0), 0);
     const totalCapital = listaRegistrosProcessados.reduce((sum, r) => sum + r.valor, 0);
+    const totalLucro = listaRegistrosProcessados.reduce((sum, r) => sum + ((r.dividaTotal || r.valor) - r.valor), 0);
+    const roi = totalCapital > 0 ? (totalLucro / totalCapital) * 100 : 0;
+    const taxaInad = totalDevido > 0 ? (listaRegistrosProcessados.filter(r => !r.isQuitado && r.diasAtraso > 0).reduce((sum, r) => sum + r.saldoDevedor, 0) / totalDevido) * 100 : 0;
+    
+    let scoreSaude = 100 - taxaInad; 
+    scoreSaude = Math.max(0, Math.min(100, scoreSaude));
+    
+    let analogiaSaude = ""; let corRisco = ""; let emojiRisco = "";
+    
+    if(scoreSaude >= 80) {
+        analogiaSaude = `A carteira comporta-se como um relógio suíço de alta precisão. A liquidez flui perfeitamente, e a taxa de retorno (ROI) em ${roi.toFixed(1)}% comprova que a alocação do capital é extremamente eficiente.`;
+        corRisco = "baixo"; emojiRisco = "🟢"; 
+    } else if (scoreSaude >= 50) {
+        analogiaSaude = `A operação assemelha-se a uma barragem com fissuras leves de retenção. O lucro projetado (${roi.toFixed(1)}%) é robusto, mas o acúmulo na Dívida Ativa está a prender capital que deveria estar em circulação imediata.`;
+        corRisco = "medio"; emojiRisco = "🟡"; 
+    } else {
+        analogiaSaude = `ESTADO DE ALERTA: Hemorragia grave de capital identificada. Com o lucro projetado sob alto risco de insolvência, é urgente travar novas concessões e executar um plano de resgate para proteger o capital original de R$ ${totalCapital.toFixed(2)}.`;
+        corRisco = "alto"; emojiRisco = "🔴"; 
+    }
+
     const html = `
-        <div class="score-card"><span class="score-label">SAÚDE FINANCEIRA</span><span class="score-value baixo">🟢 90/100</span></div>
-        <div class="estrategia-card"><p>A carteira demonstra estabilidade e boa liquidez.</p></div>
-        <div style="margin: 15px 0;">Capital Investido: <b>R$ ${totalCapital.toFixed(2)}</b> | Em Aberto: <b>R$ ${totalDevido.toFixed(2)}</b></div>
+        <div class="score-card" style="background: linear-gradient(135deg, rgba(26, 42, 79, 0.9), rgba(0,0,0,0.95)); border-color: var(--accent-gold);">
+            <span class="score-label" style="color: var(--accent-gold-light);"><i class="fas fa-heartbeat"></i> SAÚDE FINANCEIRA (BANK AI)</span>
+            <span class="score-value ${corRisco}" style="font-size: 24px; font-weight: 800;">${emojiRisco} ${Math.round(scoreSaude)}/100</span>
+        </div>
+        
+        <div class="estrategia-card">
+            <div class="estrategia-titulo"><i class="fas fa-brain"></i> PARECER ANALÍTICO GLOBAL</div>
+            <p style="font-size: 14px; line-height: 1.6; color: #f1f5f9; font-style: italic;">"${analogiaSaude}"</p>
+        </div>
+        
+        <div style="margin: 20px 0;">
+            <strong><i class="fas fa-microscope"></i> INDICADORES OPERACIONAIS (KPIs):</strong>
+            <div style="margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px;">
+                <div style="background: rgba(255,255,255,0.04); padding: 12px; border-radius: 8px;">🏦 Capital Fora de Caixa: <b style="color: white; display:block; font-size:15px; margin-top:2px;">R$ ${totalCapital.toFixed(2)}</b></div>
+                <div style="background: rgba(255,255,255,0.04); padding: 12px; border-radius: 8px;">📈 Lucro Limpo Projetado: <b style="color: var(--accent-gold); display:block; font-size:15px; margin-top:2px;">R$ ${totalLucro.toFixed(2)}</b></div>
+                <div style="background: rgba(255,255,255,0.04); padding: 12px; border-radius: 8px;">🚀 Retorno sobre Carteira (ROI): <b style="color: var(--success); display:block; font-size:15px; margin-top:2px;">${roi.toFixed(1)}%</b></div>
+                <div style="background: rgba(255,255,255,0.04); padding: 12px; border-radius: 8px;">⚠️ Retenção em Atraso: <b style="color: var(--danger); display:block; font-size:15px; margin-top:2px;">R$ ${totalDevido.toFixed(2)}</b></div>
+            </div>
+        </div>
+        
+        <div class="dica-card" style="border-left-color: var(--accent-gold); background: rgba(201, 160, 61, 0.08);">
+            <strong><i class="fas fa-chess-knight"></i> DIRETRIZ DE MITIGAÇÃO:</strong>
+            <p style="margin-top: 8px; font-size: 13px;">O teu principal objetivo estratégico deve ser recuperar o capital base preso. A IA recomenda campanhas de liquidação rápida oferecendo perdão de até 40% sobre os juros de mora acumulados, priorizando reaver o valor investido raiz.</p>
+        </div>
     `;
-    document.getElementById('ia-conteudo').innerHTML = html; document.getElementById('ia-resultado').style.display = 'block';
+    
+    document.getElementById('ia-conteudo').innerHTML = html;
+    document.getElementById('ia-resultado').style.display = 'flex';
 }
 
 function gerarRelatorioCliente(clienteNome) {
     const registrosCliente = listaRegistrosProcessados.filter(r => r.descricao === clienteNome);
+    
     const totalDevido = registrosCliente.reduce((sum, r) => sum + r.saldoDevedor, 0);
+    const totalOriginal = registrosCliente.reduce((sum, r) => sum + r.valor, 0);
     const totalPago = registrosCliente.reduce((sum, r) => sum + (r.valor_pago || 0), 0);
+    const totalJuros = registrosCliente.reduce((sum, r) => sum + ((r.dividaTotal || r.valor) - r.valor), 0);
+    const totalTaxasAvulsas = registrosCliente.reduce((sum, r) => sum + (r.acrescimo_manual || 0), 0);
+    
+    const qtdAtrasadas = registrosCliente.filter(r => !r.isQuitado && r.diasAtraso > 0).length;
+    const qtdQuitadas = registrosCliente.filter(r => r.isQuitado).length;
+    
+    let scoreSaude = 100;
+    if (totalDevido > 0) {
+        const percentualInadimplente = (totalDevido / ((totalOriginal + totalTaxasAvulsas) || 1)) * 100;
+        scoreSaude = 100 - percentualInadimplente - (qtdAtrasadas * 15) + (qtdQuitadas * 5);
+    } else if (qtdAtrasadas === 0 && totalPago > 0) {
+        scoreSaude = 100; 
+    }
+    scoreSaude = Math.max(0, Math.min(100, scoreSaude));
+    
+    let corRisco = ""; let emojiRisco = ""; let estrategia = ""; let abordagem = ""; let analogiaCliente = "";
+    
+    let limiteSugerido = 0; let decisaoCredito = ""; let corDecisao = ""; let iconeDecisao = "";
+    let basePagamento = totalPago > 0 ? totalPago : 0;
+
+    if (scoreSaude >= 80) { 
+        corRisco = "baixo"; emojiRisco = "🟢"; 
+        estrategia = "Fidelização Nível 'Gold Standard'";
+        analogiaCliente = "Trata-se de um 'Unicórnio de Crédito'. Liquidez perfeita, previsibilidade impecável. Um alicerce sólido para sua carteira.";
+        abordagem = "O cliente possui excelente histórico e seu capital não corre riscos. Envie ofertas exclusivas para alocação de novo capital.";
+        limiteSugerido = (basePagamento * 1.5) - totalDevido;
+        decisaoCredito = "CRÉDITO PRÉ-APROVADO";
+        corDecisao = "var(--success)";
+        iconeDecisao = "fa-check-circle";
+    } else if (scoreSaude >= 50) { 
+        corRisco = "medio"; emojiRisco = "🟡"; 
+        estrategia = "Fricção Ativa Modulada";
+        analogiaCliente = "Devedor com comportamento oscilante. Não há intenção latente de fraude, mas demonstra falha de prioridade.";
+        abordagem = "Acionar cobrança preventiva. Evitar desgaste direto de relacionamento, mas aplicar penalidades pontuais em atrasos.";
+        limiteSugerido = (basePagamento * 0.7) - totalDevido;
+        decisaoCredito = "CRÉDITO RESTRITO";
+        corDecisao = "var(--warning)";
+        iconeDecisao = "fa-exclamation-triangle";
+    } else { 
+        corRisco = "alto"; emojiRisco = "🔴"; 
+        estrategia = "Operação 'Haircut' Compulsório";
+        analogiaCliente = "Este devedor tornou-se um 'Buraco Negro' de capital. Ele suga liquidez e devolve promessas vazias.";
+        abordagem = "Recomenda-se quebra de renegociações tradicionais. Propor imediatamente um acordo de liquidação com desconto tático sobre as taxas avulsas para mitigar perda do capital original.";
+        limiteSugerido = 0;
+        decisaoCredito = "CRÉDITO NEGADO";
+        corDecisao = "var(--danger)";
+        iconeDecisao = "fa-ban";
+    }
+    
+    limiteSugerido = Math.max(0, limiteSugerido);
+
+    if (totalPago === 0 && totalDevido === 0 && totalOriginal === 0) {
+        limiteSugerido = 500; 
+        decisaoCredito = "LIMITE INICIAL DE CONFIANÇA";
+        corDecisao = "var(--info)";
+        iconeDecisao = "fa-info-circle";
+    }
+    
     const analiseHTML = `
-        <div class="score-card"><span class="score-label">SAÚDE DO CLIENTE</span><span class="score-value baixo">🟢 85/100</span></div>
-        <div class="estrategia-card"><strong>Estratégia: Manter Crédito Ativo</strong><p>Cliente com boa taxa de amortização.</p></div>
-        <div style="margin: 10px 0;">Já Pago: <b>R$ ${totalPago.toFixed(2)}</b> | Saldo Devedor: <b>R$ ${totalDevido.toFixed(2)}</b></div>
+        <div class="score-card">
+            <span class="score-label"><i class="fas fa-heartbeat"></i> SAÚDE DO CLIENTE</span>
+            <span class="score-value ${corRisco}" style="font-size: 24px; font-weight: 800;">${emojiRisco} ${Math.round(scoreSaude)}/100</span>
+        </div>
+        
+        <div class="estrategia-card">
+            <div class="estrategia-titulo"><i class="fas fa-user-gear"></i> COMPORTAMENTO CONTÁBIL</div>
+            <p style="font-size: 14px; font-style: italic; color: #cbd5e1; margin-bottom: 12px;">"${analogiaCliente}"</p>
+            <div style="border-top: 1px dashed rgba(201, 160, 61, 0.3); padding-top: 12px;">
+                <strong>🎯 Estratégia Recomendada: ${estrategia}</strong>
+                <p style="margin-top: 6px; font-size: 13px; line-height:1.5;">${abordagem}</p>
+            </div>
+        </div>
+
+        <div style="background: rgba(255,255,255,0.05); border: 1px solid ${corDecisao}; border-radius: 12px; padding: 15px; margin: 15px 0;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 10px;">
+                <strong style="color: white; font-size: 13px; text-transform: uppercase;"><i class="fas fa-money-check-alt"></i> Mesa de Crédito Bank AI</strong>
+                <span style="background: ${corDecisao}; color: #fff; padding: 4px 10px; border-radius: 20px; font-size: 10px; font-weight: bold;"><i class="fas ${iconeDecisao}"></i> ${decisaoCredito}</span>
+            </div>
+            <p style="font-size: 12px; color: #cbd5e1; margin-bottom: 10px; line-height: 1.4;">Com base na capacidade de pagamento comprovada e apetite de risco da operação, o Cérebro Central calculou a margem segura para novas emissões.</p>
+            <div style="font-size: 22px; font-weight: 800; color: ${corDecisao};"><span style="font-size: 12px; color: #cbd5e1; font-weight: normal; text-transform: uppercase;">Teto Operacional Recomendado:</span> R$ ${limiteSugerido.toFixed(2)}</div>
+        </div>
+        
+        <div style="margin: 15px 0;">
+            <strong><i class="fas fa-chart-column"></i> POSIÇÃO PATRIMONIAL CONSOLIDADA:</strong>
+            <div style="margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px;">
+                <div style="background: rgba(255,255,255,0.03); padding: 8px; border-radius: 6px;">Capital Despendido: R$ ${totalOriginal.toFixed(2)}</div>
+                <div style="background: rgba(255,255,255,0.03); padding: 8px; border-radius: 6px;">Spread / Juros: R$ ${totalJuros.toFixed(2)}</div>
+                <div style="background: rgba(255,255,255,0.03); padding: 8px; border-radius: 6px; color: var(--success); font-weight:700;">Amortizado: R$ ${totalPago.toFixed(2)}</div>
+                <div style="background: rgba(255,255,255,0.03); padding: 8px; border-radius: 6px; color: var(--danger); font-weight:700;">Saldo em Aberto: R$ ${totalDevido.toFixed(2)}</div>
+            </div>
+        </div>
+        
+        <div class="dica-card">
+            <strong><i class="fas fa-comment-dots"></i> ROTEIRO CIRÚRGICO DE COBRANÇA:</strong>
+            <p style="margin-top: 8px; font-size:13px; line-height:1.5;">"Olá ${clienteNome}, boa tarde. Entramos em contato da mesa de análise de crédito do BANK com relação ao seu saldo em aberto de R$ ${totalDevido.toFixed(2)}. Formulamos uma proposta especial para regularizar a sua ficha na nossa instituição hoje. Conseguimos facilidades via Pix. Qual o melhor horário para fecharmos o acordo?"</p>
+        </div>
     `;
-    document.getElementById('ia-conteudo').innerHTML = analiseHTML; document.getElementById('ia-resultado').style.display = 'block';
+    
+    document.getElementById('ia-conteudo').innerHTML = analiseHTML;
+    document.getElementById('ia-resultado').style.display = 'block';
+    document.getElementById('ia-placeholder').style.display = 'none';
 }
 
+function copiarAnaliseIA() {
+    const conteudo = document.getElementById('ia-conteudo').innerText;
+    navigator.clipboard.writeText(conteudo).then(() => {
+        const btn = document.querySelector('.ia-copiar');
+        const originalHTML = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-check"></i> Copiado';
+        setTimeout(() => { btn.innerHTML = originalHTML; }, 2000);
+    });
+}
+
+function mostrarErroIA(mensagem) {
+    document.getElementById('ia-conteudo').innerHTML = `
+        <div style="text-align: center; padding: 30px;">
+            <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: var(--warning); margin-bottom: 15px;"></i>
+            <p>${mensagem}</p>
+        </div>
+    `;
+    document.getElementById('ia-resultado').style.display = 'block';
+    document.getElementById('ia-placeholder').style.display = 'none';
+}
+
+// ==========================================
+// EXPORTAÇÃO GLOBAL
+// ==========================================
 window.analisarClienteComIA = iniciarAnaliseIA;
-window.salvarRegistro = salvarRegistro; window.verificarParcelas = verificarParcelas;
-window.fecharModal = fecharModal; window.fecharModalDetalhes = fecharModalDetalhes;
-window.prepararEdicao = prepararEdicao; window.adicionarAcrescimo = adicionarAcrescimo;
-window.registrarPagamento = registrarPagamento; window.deletarRegistro = deletarRegistro;
-window.filtrarInterface = filtrarInterface; window.verDetalhes = verDetalhes;
+window.salvarRegistro = salvarRegistro; 
+window.verificarParcelas = verificarParcelas;
+window.fecharModal = fecharModal; 
+window.fecharModalDetalhes = fecharModalDetalhes;
+window.prepararEdicao = prepararEdicao; 
+window.adicionarAcrescimo = adicionarAcrescimo;
+window.registrarPagamento = registrarPagamento; 
+window.deletarRegistro = deletarRegistro;
+window.filtrarInterface = filtrarInterface; 
+window.verDetalhes = verDetalhes;
+window.copiarAnaliseIA = copiarAnaliseIA;
 
 verificarParcelas();
