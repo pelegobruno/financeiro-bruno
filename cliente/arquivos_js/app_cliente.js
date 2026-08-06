@@ -54,6 +54,7 @@ async function tentarLogin() {
 
         if (clienteEncontrado) {
             clienteLogado = clienteEncontrado;
+            sessionStorage.setItem('clienteLogado', clienteLogado);
             iniciarPainelCliente();
         } else {
             erroMsg.style.display = 'block';
@@ -200,6 +201,7 @@ async function atualizarNomePerfil() {
             reg.descricao = novoNome; 
         }
         clienteLogado = novoNome;
+        sessionStorage.setItem('clienteLogado', clienteLogado); // Atualiza na memória também
         document.getElementById('header-nome-cliente').innerText = `Bem-vindo, ${clienteLogado}`;
         alert("Perfil atualizado com sucesso!");
     } catch (error) { alert("Erro na conexão com o servidor."); } 
@@ -210,8 +212,10 @@ async function atualizarNomePerfil() {
 }
 document.getElementById('btn-atualizar-perfil').addEventListener('click', atualizarNomePerfil);
 
+// LOGOUT: LIMPA A SESSÃO
 document.getElementById('btn-sair').addEventListener('click', () => {
     clienteLogado = null;
+    sessionStorage.removeItem('clienteLogado');
     document.getElementById('painel-cliente').style.display = 'none';
     document.getElementById('tela-login').style.display = 'flex';
     document.getElementById('login-usuario').value = '';
@@ -231,3 +235,32 @@ document.getElementById('btn-copiar-pix').addEventListener('click', () => {
         }, 2000);
     });
 });
+
+// ==========================================
+// RESTAURAÇÃO DE SESSÃO DO CLIENTE (REFRESH)
+// ==========================================
+async function verificarSessaoCliente() {
+    const clienteSalvo = sessionStorage.getItem('clienteLogado');
+    if (clienteSalvo) {
+        const btnEntrar = document.getElementById('btn-entrar');
+        btnEntrar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Restaurando sessão...';
+        btnEntrar.disabled = true;
+        
+        try {
+            const querySnapshot = await getDocs(collection(db, "registros"));
+            listaRegistrosGeral = [];
+            querySnapshot.forEach((doc) => {
+                const reg = doc.data(); reg.id = doc.id;
+                listaRegistrosGeral.push(reg);
+            });
+            
+            clienteLogado = clienteSalvo;
+            iniciarPainelCliente();
+        } catch (error) {
+            sessionStorage.removeItem('clienteLogado');
+            btnEntrar.innerHTML = '<i class="fas fa-sign-in-alt"></i> Entrar no Sistema';
+            btnEntrar.disabled = false;
+        }
+    }
+}
+verificarSessaoCliente();

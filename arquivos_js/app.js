@@ -14,12 +14,23 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// LOGIN DO ADMINISTRADOR
+// ==========================================
+// SEGURANÇA: LOGIN DO ADMINISTRADOR COM MEMÓRIA
+// ==========================================
+function verificarSessaoAdmin() {
+    if(sessionStorage.getItem('adminLogado') === 'true') {
+        document.getElementById('tela-login-admin').style.display = 'none';
+        document.getElementById('painel-admin').style.display = 'block';
+        carregarDadosDoFirebase();
+    }
+}
+
 document.getElementById('btn-entrar-admin').addEventListener('click', () => {
     const usuarioDigitado = document.getElementById('usuario-admin').value.trim();
     const senhaDigitada = document.getElementById('senha-admin').value;
     
     if(usuarioDigitado === "bankadm" && senhaDigitada === "789000") {
+        sessionStorage.setItem('adminLogado', 'true');
         document.getElementById('tela-login-admin').style.display = 'none';
         document.getElementById('painel-admin').style.display = 'block';
         carregarDadosDoFirebase(); 
@@ -30,6 +41,8 @@ document.getElementById('btn-entrar-admin').addEventListener('click', () => {
 
 document.getElementById('senha-admin').addEventListener('keypress', (e) => { if(e.key === 'Enter') document.getElementById('btn-entrar-admin').click(); });
 document.getElementById('usuario-admin').addEventListener('keypress', (e) => { if(e.key === 'Enter') document.getElementById('btn-entrar-admin').click(); });
+
+verificarSessaoAdmin();
 
 let idEditando = null;
 let listaRegistrosProcessados = [];
