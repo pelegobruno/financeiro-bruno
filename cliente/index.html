@@ -18,7 +18,7 @@
         <p>Acompanhe seus saldos e limites de crédito.</p>
         
         <div class="input-group">
-            <label>Seu Nome Completo ou CPF</label>
+            <label>Seu Nome Completo</label>
             <input type="text" id="login-usuario" placeholder="Digite seu acesso...">
         </div>
         <div class="input-group">
@@ -90,23 +90,35 @@
             </div>
         </div>
 
+        <!-- NOVO DESIGN DA ÁREA DE CRÉDITO E PIX -->
         <div class="operacao-card solicitacao-card">
             <div class="card-header">
                 <i class="fas fa-wallet"></i>
-                <h3>Informações & Pix</h3>
+                <h3>Crédito & Pagamento</h3>
             </div>
             <div class="form-moderno" style="text-align: center; margin-top: 5px;">
-                <h2 id="display-limite-solicitar" style="color: var(--text-primary); margin-bottom: 2px;">R$ 0,00</h2>
-                <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">Este é o seu limite máximo liberado no momento.</p>
                 
-                <div class="caixa-pix">
-                    <span class="pix-label"><i class="fas fa-qrcode"></i> Chave Pix (E-mail):</span>
-                    <span id="texto-pix-chave" class="pix-chave">psicovitaleco@gmail.com</span>
+                <!-- BLOCO DO LIMITE DE CRÉDITO -->
+                <div style="background: rgba(16, 185, 129, 0.08); border: 1.5px dashed var(--success); border-radius: 12px; padding: 15px; margin-bottom: 20px;">
+                    <p style="font-size: 11px; color: var(--success-dark); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px;"><i class="fas fa-unlock-alt"></i> Crédito Pré-Aprovado</p>
+                    <h2 id="display-limite-solicitar" style="color: var(--success-dark); margin-bottom: 4px; font-size: 26px;">R$ 0,00</h2>
+                    <p style="font-size: 11px; color: var(--text-secondary);">Este é o seu limite disponível para solicitar um novo empréstimo no momento.</p>
+                </div>
+                
+                <!-- BLOCO DA CHAVE PIX -->
+                <div style="border-top: 1px solid var(--border-light); padding-top: 15px;">
+                    <p style="font-size: 11px; color: var(--text-secondary); margin-bottom: 12px; font-weight: 500;">Para pagar suas parcelas em aberto, utilize o Pix:</p>
+                    
+                    <div class="caixa-pix">
+                        <span class="pix-label"><i class="fas fa-qrcode"></i> Chave Pix (E-mail):</span>
+                        <span id="texto-pix-chave" class="pix-chave">psicovitaleco@gmail.com</span>
+                    </div>
+
+                    <button id="btn-copiar-pix" class="btn-banco" style="margin-top: 0; border: 1px solid rgba(255,255,255,0.2);">
+                        <i class="fas fa-copy"></i> Copiar Chave Pix
+                    </button>
                 </div>
 
-                <button id="btn-copiar-pix" class="btn-banco" style="margin-top: 0;">
-                    <i class="fas fa-copy"></i> Copiar Chave Pix
-                </button>
             </div>
         </div>
     </div>
