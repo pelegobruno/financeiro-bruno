@@ -1,14 +1,11 @@
 :root {
     --primary-dark: #0a0f1c;
     --primary: #1a2a4f;
-    --primary-light: #2d3e6e;
     --accent-gold: #c9a03d;
     --success: #10b981;
     --success-dark: #059669;
     --danger: #ef4444;
-    --warning: #f59e0b;
     --info: #3b82f6;
-    --bg-dark: #0f1419;
     --bg-card: #ffffff;
     --bg-surface: #f8fafc;
     --text-primary: #111827;
@@ -21,19 +18,17 @@
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
-/* BASE (FOCO EM CELULAR / MOBILE FIRST) */
 body {
     font-family: 'Inter', sans-serif;
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     background-attachment: fixed;
     color: var(--text-primary);
-    padding: 10px; /* Bem colado nas bordas da tela do celular */
+    padding: 10px;
     min-height: 100vh;
 }
 
 .container { max-width: 100%; margin: 0 auto; }
 
-/* TELA DE LOGIN (APP FEEL) */
 .login-wrapper {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
@@ -53,7 +48,6 @@ body {
 .login-box p { font-size: 12px; color: var(--text-muted); margin-bottom: 20px; }
 .login-box .input-group { text-align: left; margin-bottom: 12px; }
 
-/* HEADER PREMIUM COMPACTO */
 .header-premium {
     background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%);
     border-radius: 12px; padding: 12px 15px; margin-bottom: 15px;
@@ -68,17 +62,10 @@ body {
 .btn-sair {
     background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2);
     padding: 6px 10px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 11px;
-    transition: all 0.2s; display: flex; align-items: center; gap: 5px;
 }
 
-/* MÉTRICAS E PAINÉIS SUPER SLIM */
-.painel-metricas-cliente, .painel-operacoes-cliente { 
-    display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 15px; 
-}
-.metric-card, .operacao-card {
-    background: var(--bg-card); border-radius: 12px; padding: 12px 15px;
-    box-shadow: var(--shadow-md); border: 1px solid var(--border-light);
-}
+.painel-metricas-cliente, .painel-operacoes-cliente { display: grid; grid-template-columns: 1fr; gap: 10px; margin-bottom: 15px; }
+.metric-card, .operacao-card { background: var(--bg-card); border-radius: 12px; padding: 12px 15px; box-shadow: var(--shadow-md); border: 1px solid var(--border-light); }
 .metric-card { display: flex; align-items: center; gap: 12px; }
 .metric-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
 .metric-card.atrasado .metric-icon { background: linear-gradient(135deg, #f43f5e, #e11d48); color: white; }
@@ -90,7 +77,6 @@ body {
 .metric-value { font-size: 18px; font-weight: 800; color: var(--text-primary); margin: 2px 0; display: block; }
 .metric-trend { font-size: 10px; color: var(--text-muted); }
 
-/* FORMULÁRIOS & CAIXA PIX */
 .card-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--border-light); }
 .card-header i { font-size: 14px; color: var(--primary); }
 .card-header h3 { font-size: 13px; font-weight: 700; color: var(--text-primary); }
@@ -99,26 +85,21 @@ body {
 .input-group { display: flex; flex-direction: column; gap: 4px; }
 .input-group label { font-size: 10px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; }
 .input-group input { padding: 10px; border: 1.5px solid var(--border-light); border-radius: 8px; font-size: 13px; font-family: 'Inter', sans-serif; width: 100%; }
-.input-group input:focus { outline: none; border-color: var(--primary); }
 
 .btn-banco { background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; border: none; padding: 10px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; margin-top: 10px; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; }
 
 .caixa-pix { background: var(--bg-surface); border: 1px dashed var(--border-light); border-radius: 8px; padding: 10px; margin-bottom: 10px; text-align: left; }
 .pix-label { font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 2px; }
-.pix-chave { font-size: 13px; font-weight: 700; color: var(--primary); word-break: break-all;}
+.pix-chave { font-size: 13px; font-weight: 700; color: var(--primary); word-break: break-all; }
 .modal-erro { display: none; color: var(--danger); font-size: 12px; font-weight: 600; }
 
-/* TABELA EXTRATO MINI */
 .tabela-container { background: var(--bg-card); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow-md); border: 1px solid var(--border-light); margin-bottom: 15px; }
 .tabela-header-superior { padding: 10px 12px; background: linear-gradient(135deg, var(--bg-surface), white); border-bottom: 1px solid var(--border-light); }
 .tabela-titulo-area h3 { font-size: 12px; font-weight: 700; color: var(--primary); }
-.tabela-titulo-area h3 i { margin-right: 5px; }
-.tabela-scroll { overflow-x: auto; width: 100%; -webkit-overflow-scrolling: touch; }
+.tabela-scroll { overflow-x: auto; width: 100%; }
 table { width: 100%; border-collapse: collapse; min-width: 450px; }
 th { text-align: left; padding: 8px 10px; background: var(--bg-surface); color: var(--text-secondary); font-weight: 700; font-size: 9px; text-transform: uppercase; }
 td { padding: 8px 10px; border-bottom: 1px solid var(--border-light); font-size: 11px; font-weight: 500; }
-table th:nth-child(3), table td:nth-child(3) { text-align: center; } 
-table th:nth-child(4), table td:nth-child(4), table th:nth-child(5), table td:nth-child(5) { text-align: right; }
 .badge { padding: 3px 8px; border-radius: 10px; font-size: 9px; font-weight: 800; display: inline-block; }
 .badge.atrasado { background: #fef2f2; color: var(--danger); border: 1px solid #fecaca; }
 .badge.em-dia { background: #eff6ff; color: var(--info); border: 1px solid #bfdbfe; }
@@ -126,47 +107,11 @@ table th:nth-child(4), table td:nth-child(4), table th:nth-child(5), table td:nt
 .valor-destaque { font-weight: 800; font-size: 12px; }
 .info-extra { font-size: 9px; color: var(--text-muted); display: block; margin-top: 2px; }
 
-
-/* =========================================
-   COMPUTADOR E TELAS GRANDES (DESKTOP)
-   ========================================= */
 @media (min-width: 768px) {
     body { padding: 30px; }
-    .container { max-width: 1000px; } /* Fica elegante e centralizado no PC */
-    
-    .painel-metricas-cliente { grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 25px; }
-    .painel-operacoes-cliente { grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 25px; }
-    
-    .header-premium { padding: 20px 30px; border-radius: 20px; margin-bottom: 25px; }
-    .logo-icon { width: 50px; height: 50px; font-size: 24px; border-radius: 12px; }
-    .logo-text h1 { font-size: 20px; }
-    .logo-text span { font-size: 12px; }
-    .btn-sair { padding: 8px 15px; font-size: 13px; border-radius: 10px; }
-    
-    .metric-card, .operacao-card { padding: 20px; border-radius: 16px; }
-    .metric-icon { width: 50px; height: 50px; font-size: 20px; border-radius: 12px; }
-    .metric-label { font-size: 11px; }
-    .metric-value { font-size: 26px; margin: 4px 0; }
-    .metric-trend { font-size: 11px; }
-    
-    .card-header { margin-bottom: 15px; padding-bottom: 12px; }
-    .card-header i { font-size: 18px; }
-    .card-header h3 { font-size: 15px; }
-    .form-desc { font-size: 13px; margin-bottom: 15px; }
-    .input-group label { font-size: 11px; }
-    .input-group input { padding: 12px; border-radius: 10px; font-size: 14px; }
-    .btn-banco { padding: 12px; border-radius: 10px; font-size: 14px; margin-top: 15px; }
-    
-    .caixa-pix { padding: 12px; margin-bottom: 15px; border-radius: 10px; }
-    .pix-label { font-size: 11px; }
-    .pix-chave { font-size: 15px; }
-    
-    .tabela-container { border-radius: 16px; margin-bottom: 20px; }
-    .tabela-header-superior { padding: 16px; }
-    .tabela-titulo-area h3 { font-size: 15px; }
-    th { padding: 12px 15px; font-size: 11px; }
-    td { padding: 15px; font-size: 13px; }
-    .valor-destaque { font-size: 14px; }
-    .info-extra { font-size: 10px; }
+    .container { max-width: 1000px; }
+    .painel-metricas-cliente { grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .painel-operacoes-cliente { grid-template-columns: 1fr 1fr; gap: 20px; }
+    .metric-value { font-size: 26px; }
     table { min-width: 100%; }
 }

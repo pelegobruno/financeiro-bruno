@@ -45,10 +45,8 @@ async function tentarLogin() {
         let clienteEncontrado = null;
 
         querySnapshot.forEach((doc) => {
-            const reg = doc.data();
-            reg.id = doc.id;
+            const reg = doc.data(); reg.id = doc.id;
             listaRegistrosGeral.push(reg);
-            
             if (reg.descricao && reg.descricao.toLowerCase() === usuarioInput.toLowerCase()) {
                 clienteEncontrado = reg.descricao; 
             }
@@ -62,7 +60,6 @@ async function tentarLogin() {
             erroMsg.innerHTML = '<i class="fas fa-exclamation-circle"></i> Cliente não encontrado na base de dados.';
         }
     } catch (error) {
-        console.error("Erro na conexão:", error);
         erroMsg.style.display = 'block';
         erroMsg.innerHTML = '<i class="fas fa-exclamation-circle"></i> Falha na conexão com o servidor.';
     } finally {
@@ -71,9 +68,7 @@ async function tentarLogin() {
     }
 }
 
-document.getElementById('login-senha').addEventListener('keypress', function(e) {
-    if(e.key === 'Enter') tentarLogin();
-});
+document.getElementById('login-senha').addEventListener('keypress', function(e) { if(e.key === 'Enter') tentarLogin(); });
 document.getElementById('btn-entrar').addEventListener('click', tentarLogin);
 
 function iniciarPainelCliente() {
@@ -81,18 +76,14 @@ function iniciarPainelCliente() {
     document.getElementById('painel-cliente').style.display = 'block';
     document.getElementById('header-nome-cliente').innerText = `Bem-vindo, ${clienteLogado}`;
     document.getElementById('editar-nome-cliente').value = clienteLogado;
-
     processarDadosCliente();
 }
 
 function processarDadosCliente() {
     const registrosCliente = listaRegistrosGeral.filter(r => r.descricao === clienteLogado);
-    
-    let totalDevido = 0; let totalOriginal = 0; let totalPago = 0; let totalTaxasAvulsas = 0;
-    let qtdAtrasadas = 0; let qtdQuitadas = 0;
-
-    const hoje = new Date();
-    hoje.setHours(0,0,0,0);
+    let totalDevido = 0, totalOriginal = 0, totalPago = 0, totalTaxasAvulsas = 0;
+    let qtdAtrasadas = 0, qtdQuitadas = 0;
+    const hoje = new Date(); hoje.setHours(0,0,0,0);
     const dadosTabela = [];
 
     registrosCliente.forEach(reg => {
@@ -107,7 +98,6 @@ function processarDadosCliente() {
         let valorParcelaOriginal = dividaOriginal / parcelas;
 
         const isQuitado = valorPagoReg >= (dividaOriginal - 0.01);
-
         let parcelasPagas = 0;
         if (!isQuitado && parcelas > 1 && valorPagoReg > 0) {
             parcelasPagas = Math.floor((valorPagoReg + 0.01) / valorParcelaOriginal);
@@ -123,23 +113,15 @@ function processarDadosCliente() {
             if (diffTempo > 0) {
                 diasAtraso = Math.floor(diffTempo / (1000 * 60 * 60 * 24));
                 const mesesAtraso = Math.floor(diasAtraso / 30);
-                if (mesesAtraso > 0 && reg.taxa_juros > 0) {
-                    valorBase = valorBase * Math.pow((1 + (reg.taxa_juros / 100)), mesesAtraso);
-                }
+                if (mesesAtraso > 0 && reg.taxa_juros > 0) valorBase = valorBase * Math.pow((1 + (reg.taxa_juros / 100)), mesesAtraso);
             }
         }
 
         const dividaTotalReg = valorBase + (reg.acrescimo_manual || 0);
-        let saldoDevedorReg = dividaTotalReg - valorPagoReg;
-        if (saldoDevedorReg < 0) saldoDevedorReg = 0;
+        let saldoDevedorReg = Math.max(0, dividaTotalReg - valorPagoReg);
 
-        totalDevido += saldoDevedorReg;
-        totalOriginal += reg.valor;
-        totalPago += valorPagoReg;
-        totalTaxasAvulsas += (reg.acrescimo_manual || 0);
-
-        if (isQuitado) qtdQuitadas++;
-        else if (diasAtraso > 0) qtdAtrasadas++;
+        totalDevido += saldoDevedorReg; totalOriginal += reg.valor; totalPago += valorPagoReg; totalTaxasAvulsas += (reg.acrescimo_manual || 0);
+        if (isQuitado) qtdQuitadas++; else if (diasAtraso > 0) qtdAtrasadas++;
 
         const diaV = String(dataVencimentoEfetiva.getDate()).padStart(2, '0');
         const mesV = String(dataVencimentoEfetiva.getMonth() + 1).padStart(2, '0');
@@ -155,14 +137,11 @@ function processarDadosCliente() {
     if (totalDevido > 0) {
         const percentualInadimplente = (totalDevido / ((totalOriginal + totalTaxasAvulsas) || 1)) * 100;
         scoreSaude = 100 - percentualInadimplente - (qtdAtrasadas * 15) + (qtdQuitadas * 5);
-    } else if (qtdAtrasadas === 0 && totalPago > 0) {
-        scoreSaude = 100;
     }
     scoreSaude = Math.max(0, Math.min(100, scoreSaude));
 
     let limiteSugerido = 0;
     let basePagamento = totalPago > 0 ? totalPago : 0;
-    
     if (scoreSaude >= 80) limiteSugerido = (basePagamento * 1.5) - totalDevido;
     else if (scoreSaude >= 50) limiteSugerido = (basePagamento * 0.7) - totalDevido;
     else limiteSugerido = 0;
@@ -172,11 +151,9 @@ function processarDadosCliente() {
 
     document.getElementById('cliente-devido').innerText = `R$ ${totalDevido.toFixed(2)}`;
     document.getElementById('cliente-pago').innerText = `R$ ${totalPago.toFixed(2)}`;
-    
     const displayLimite = `R$ ${limiteSugerido.toFixed(2)}`;
     document.getElementById('cliente-limite').innerText = displayLimite;
     document.getElementById('display-limite-solicitar').innerText = displayLimite;
-    document.getElementById('cliente-limite').style.color = limiteSugerido > 0 ? 'var(--success)' : 'var(--danger)';
 
     renderizarTabelaCliente(dadosTabela);
 }
@@ -184,12 +161,10 @@ function processarDadosCliente() {
 function renderizarTabelaCliente(dados) {
     const corpoTabela = document.getElementById('tabela-corpo-cliente');
     corpoTabela.innerHTML = "";
-
     if (dados.length === 0) {
         corpoTabela.innerHTML = `<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted); font-size: 11px;">Sem operações ativas.</td></tr>`;
         return;
     }
-
     dados.forEach(reg => {
         let badgeClass = reg.isQuitado ? "badge quitado" : (reg.diasAtraso > 0 ? "badge atrasado" : "badge em-dia");
         let statusTexto = reg.isQuitado ? "Quitado" : (reg.diasAtraso > 0 ? `Atraso` : "Em dia");
@@ -211,7 +186,6 @@ function renderizarTabelaCliente(dados) {
 async function atualizarNomePerfil() {
     const novoNome = document.getElementById('editar-nome-cliente').value.trim();
     const btnAtualizar = document.getElementById('btn-atualizar-perfil');
-
     if (!novoNome) return alert("O nome não pode ficar vazio.");
     if (novoNome === clienteLogado) return alert("Os dados já estão atualizados.");
 
@@ -220,20 +194,16 @@ async function atualizarNomePerfil() {
 
     try {
         const registrosCliente = listaRegistrosGeral.filter(r => r.descricao === clienteLogado);
-        
         for (let reg of registrosCliente) {
             const ref = doc(db, "registros", reg.id);
             await updateDoc(ref, { descricao: novoNome });
             reg.descricao = novoNome; 
         }
-
         clienteLogado = novoNome;
         document.getElementById('header-nome-cliente').innerText = `Bem-vindo, ${clienteLogado}`;
         alert("Perfil atualizado com sucesso!");
-    } catch (error) {
-        console.error("Erro ao atualizar perfil:", error);
-        alert("Erro na conexão com o servidor.");
-    } finally {
+    } catch (error) { alert("Erro na conexão com o servidor."); } 
+    finally {
         btnAtualizar.disabled = false;
         btnAtualizar.innerHTML = '<i class="fas fa-sync-alt"></i> Atualizar Dados';
     }
@@ -248,7 +218,6 @@ document.getElementById('btn-sair').addEventListener('click', () => {
     document.getElementById('login-senha').value = '';
 });
 
-// FUNÇÃO DE COPIAR A CHAVE PIX
 document.getElementById('btn-copiar-pix').addEventListener('click', () => {
     const chavePix = document.getElementById('texto-pix-chave').innerText;
     navigator.clipboard.writeText(chavePix).then(() => {
