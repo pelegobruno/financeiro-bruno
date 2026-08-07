@@ -8,6 +8,10 @@
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        /* Animação suave para o novo Pop-up */
+        @keyframes popIn { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+    </style>
 </head>
 <body>
 
@@ -18,7 +22,7 @@
         <p>Acompanhe seus saldos e limites de crédito.</p>
         
         <div class="input-group">
-            <label>Seu Nome Completo</label>
+            <label>Seu Nome Completo ou CPF</label>
             <input type="text" id="login-usuario" placeholder="Digite seu acesso...">
         </div>
         <div class="input-group">
@@ -90,7 +94,6 @@
             </div>
         </div>
 
-        <!-- NOVO DESIGN DA ÁREA DE CRÉDITO E PIX -->
         <div class="operacao-card solicitacao-card">
             <div class="card-header">
                 <i class="fas fa-wallet"></i>
@@ -98,14 +101,12 @@
             </div>
             <div class="form-moderno" style="text-align: center; margin-top: 5px;">
                 
-                <!-- BLOCO DO LIMITE DE CRÉDITO -->
                 <div style="background: rgba(16, 185, 129, 0.08); border: 1.5px dashed var(--success); border-radius: 12px; padding: 15px; margin-bottom: 20px;">
                     <p style="font-size: 11px; color: var(--success-dark); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 5px;"><i class="fas fa-unlock-alt"></i> Crédito Pré-Aprovado</p>
                     <h2 id="display-limite-solicitar" style="color: var(--success-dark); margin-bottom: 4px; font-size: 26px;">R$ 0,00</h2>
                     <p style="font-size: 11px; color: var(--text-secondary);">Este é o seu limite disponível para solicitar um novo empréstimo no momento.</p>
                 </div>
                 
-                <!-- BLOCO DA CHAVE PIX -->
                 <div style="border-top: 1px solid var(--border-light); padding-top: 15px;">
                     <p style="font-size: 11px; color: var(--text-secondary); margin-bottom: 12px; font-weight: 500;">Para pagar suas parcelas em aberto, utilize o Pix:</p>
                     
@@ -114,9 +115,16 @@
                         <span id="texto-pix-chave" class="pix-chave">psicovitaleco@gmail.com</span>
                     </div>
 
-                    <button id="btn-copiar-pix" class="btn-banco" style="margin-top: 0; border: 1px solid rgba(255,255,255,0.2);">
-                        <i class="fas fa-copy"></i> Copiar Chave Pix
-                    </button>
+                    <div style="display: flex; gap: 8px; margin-top: 10px;">
+                        <button id="btn-copiar-pix" class="btn-banco" style="margin-top: 0; flex: 1; border: 1px solid rgba(255,255,255,0.2); font-size: 11px; padding: 10px 5px;">
+                            <i class="fas fa-copy"></i> Copiar Chave
+                        </button>
+                        
+                        <input type="file" id="input-comprovante" accept="image/*" style="display:none;">
+                        <label for="input-comprovante" class="btn-banco" id="label-comprovante" style="flex: 1; background: #1a2a4f; color: white; font-size: 11px; padding: 10px 5px; cursor: pointer; text-align: center; margin-top: 0; display: flex; align-items: center; justify-content: center; gap: 5px;">
+                            <i class="fas fa-camera"></i> Enviar Comprovante
+                        </label>
+                    </div>
                 </div>
 
             </div>
@@ -143,6 +151,18 @@
                 <tbody id="tabela-corpo-cliente"></tbody>
             </table>
         </div>
+    </div>
+</div>
+
+<!-- MODAL DE ALERTA PERSONALIZADO (Substitui o "127.0.0.1 diz") -->
+<div id="modalAlerta" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 15, 28, 0.85); backdrop-filter: blur(5px); z-index: 10000; justify-content: center; align-items: center; padding: 20px;">
+    <div style="background: var(--bg-card, #ffffff); border-radius: 20px; padding: 30px 20px; width: 100%; max-width: 320px; text-align: center; box-shadow: var(--shadow-xl); border: 1px solid rgba(255,255,255,0.1); animation: popIn 0.3s ease-out;">
+        <div id="alerta-icone" style="font-size: 50px; margin-bottom: 15px;"></div>
+        <h3 id="alerta-titulo" style="color: var(--text-primary); font-size: 18px; font-weight: 800; margin-bottom: 8px;">Aviso</h3>
+        <p id="alerta-mensagem" style="color: var(--text-secondary); font-size: 13px; line-height: 1.5; margin-bottom: 25px;"></p>
+        <button onclick="document.getElementById('modalAlerta').style.display='none'" class="btn-banco" style="width: 100%; font-size: 14px; padding: 12px; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);">
+            OK, Entendi
+        </button>
     </div>
 </div>
 

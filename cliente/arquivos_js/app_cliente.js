@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import { getFirestore, collection, getDocs, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { getFirestore, collection, getDocs, updateDoc, doc, addDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyCrNmckgyxPHWY2F_mIACKxVnrtidqJOXA",
@@ -17,6 +17,85 @@ const db = getFirestore(app);
 let clienteLogado = null;
 let listaRegistrosGeral = [];
 
+// ==========================================
+// FUNÇÃO DE ALERTA PERSONALIZADO (NOVO)
+// ==========================================
+function mostrarAlerta(titulo, mensagem, tipo = 'info') {
+    const modal = document.getElementById('modalAlerta');
+    const icone = document.getElementById('alerta-icone');
+    
+    document.getElementById('alerta-titulo').innerText = titulo;
+    document.getElementById('alerta-mensagem').innerText = mensagem;
+    
+    if (tipo === 'sucesso') {
+        icone.innerHTML = '<i class="fas fa-check-circle" style="color: var(--success, #10b981);"></i>';
+    } else if (tipo === 'erro') {
+        icone.innerHTML = '<i class="fas fa-exclamation-circle" style="color: var(--danger, #ef4444);"></i>';
+    } else {
+        icone.innerHTML = '<i class="fas fa-info-circle" style="color: var(--info, #3b82f6);"></i>';
+    }
+    
+    modal.style.display = 'flex';
+}
+
+// ==========================================
+// COMPRESSÃO E ENVIO DE COMPROVANTE (CANVAS)
+// ==========================================
+document.addEventListener('DOMContentLoaded', () => {
+    const inputComp = document.getElementById('input-comprovante');
+    if (inputComp) {
+        inputComp.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if(!file) return;
+
+            const labelBtn = document.getElementById('label-comprovante');
+            if (labelBtn) {
+                labelBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+                labelBtn.style.pointerEvents = 'none';
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = async function() {
+                    const canvas = document.createElement('canvas');
+                    const MAX_WIDTH = 600; 
+                    const scaleSize = MAX_WIDTH / img.width;
+                    canvas.width = MAX_WIDTH;
+                    canvas.height = img.height * scaleSize;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.6);
+
+                    try {
+                        await addDoc(collection(db, "comprovantes"), {
+                            cliente: clienteLogado,
+                            imagem: dataUrl,
+                            dataEnvio: new Date().toLocaleString('pt-BR'),
+                            status: 'pendente'
+                        });
+                        mostrarAlerta("Enviado com Sucesso!", "Seu comprovante foi recebido. O banco analisará a baixa em breve.", "sucesso");
+                    } catch(err) {
+                        console.error(err);
+                        mostrarAlerta("Erro no Envio", "Não foi possível enviar o arquivo. Tente novamente.", "erro");
+                    } finally {
+                        if (labelBtn) {
+                            labelBtn.innerHTML = '<i class="fas fa-camera"></i> Enviar Comprovante';
+                            labelBtn.style.pointerEvents = 'auto';
+                        }
+                    }
+                }
+                img.src = e.target.result;
+            }
+            reader.readAsDataURL(file);
+        });
+    }
+});
+
+// ==========================================
+// AUTENTICAÇÃO E NAVEGAÇÃO
+// ==========================================
 async function tentarLogin() {
     const usuarioInput = document.getElementById('login-usuario').value.trim();
     const senhaInput = document.getElementById('login-senha').value;
@@ -57,12 +136,10 @@ async function tentarLogin() {
             sessionStorage.setItem('clienteLogado', clienteLogado);
             iniciarPainelCliente();
         } else {
-            erroMsg.style.display = 'block';
-            erroMsg.innerHTML = '<i class="fas fa-exclamation-circle"></i> Cliente não encontrado na base de dados.';
+            mostrarAlerta("Acesso Negado", "Cliente não encontrado na base de dados.", "erro");
         }
     } catch (error) {
-        erroMsg.style.display = 'block';
-        erroMsg.innerHTML = '<i class="fas fa-exclamation-circle"></i> Falha na conexão com o servidor.';
+        mostrarAlerta("Erro de Conexão", "Falha ao se conectar com o servidor.", "erro");
     } finally {
         btnEntrar.innerHTML = '<i class="fas fa-sign-in-alt"></i> Entrar no Sistema';
         btnEntrar.disabled = false;
@@ -88,7 +165,6 @@ function processarDadosCliente() {
     const dadosTabela = [];
 
     registrosCliente.forEach(reg => {
-        // Garantindo precisão absoluta na extração da data
         const partesData = reg.data_vencimento.split('-');
         const dataVencimentoOriginal = new Date(partesData[0], partesData[1] - 1, partesData[2]);
         dataVencimentoOriginal.setHours(0, 0, 0, 0);
@@ -125,7 +201,6 @@ function processarDadosCliente() {
         totalDevido += saldoDevedorReg; totalOriginal += reg.valor; totalPago += valorPagoReg; totalTaxasAvulsas += (reg.acrescimo_manual || 0);
         if (isQuitado) qtdQuitadas++; else if (diasAtraso > 0) qtdAtrasadas++;
 
-        // Formatação das Datas (Original vs Nova Parcela)
         const strOriginal = `${String(dataVencimentoOriginal.getDate()).padStart(2, '0')}/${String(dataVencimentoOriginal.getMonth() + 1).padStart(2, '0')}/${dataVencimentoOriginal.getFullYear()}`;
         const strEfetiva = `${String(dataVencimentoEfetiva.getDate()).padStart(2, '0')}/${String(dataVencimentoEfetiva.getMonth() + 1).padStart(2, '0')}/${dataVencimentoEfetiva.getFullYear()}`;
 
@@ -175,7 +250,6 @@ function renderizarTabelaCliente(dados) {
         let parcelasRestantes = (reg.parcelas || 1) - (reg.parcelasPagas || 0);
         let infoParcelas = (reg.parcelas > 1 && !reg.isQuitado) ? `<span class="info-extra">Restam ${parcelasRestantes} parc.</span>` : "";
 
-        // Lógica de exibição da data para o cliente
         let dataExibicao = reg.dataOriginalStr;
         if (reg.isQuitado) {
             dataExibicao = "Finalizado";
@@ -198,8 +272,8 @@ function renderizarTabelaCliente(dados) {
 async function atualizarNomePerfil() {
     const novoNome = document.getElementById('editar-nome-cliente').value.trim();
     const btnAtualizar = document.getElementById('btn-atualizar-perfil');
-    if (!novoNome) return alert("O nome não pode ficar vazio.");
-    if (novoNome === clienteLogado) return alert("Os dados já estão atualizados.");
+    if (!novoNome) return mostrarAlerta("Atenção", "O nome não pode ficar vazio.", "erro");
+    if (novoNome === clienteLogado) return mostrarAlerta("Aviso", "Seus dados já estão atualizados.", "info");
 
     btnAtualizar.disabled = true;
     btnAtualizar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Atualizando...';
@@ -214,8 +288,10 @@ async function atualizarNomePerfil() {
         clienteLogado = novoNome;
         sessionStorage.setItem('clienteLogado', clienteLogado);
         document.getElementById('header-nome-cliente').innerText = `Bem-vindo, ${clienteLogado}`;
-        alert("Perfil atualizado com sucesso!");
-    } catch (error) { alert("Erro na conexão com o servidor."); } 
+        mostrarAlerta("Sucesso!", "Seu perfil foi atualizado corretamente.", "sucesso");
+    } catch (error) { 
+        mostrarAlerta("Erro", "Falha na conexão com o servidor.", "erro"); 
+    } 
     finally {
         btnAtualizar.disabled = false;
         btnAtualizar.innerHTML = '<i class="fas fa-sync-alt"></i> Atualizar Dados';
@@ -233,12 +309,13 @@ document.getElementById('btn-sair').addEventListener('click', () => {
     document.getElementById('login-senha').value = '';
 });
 
+// COPIAR PIX COM ANIMAÇÃO NO BOTÃO (Sem popup)
 document.getElementById('btn-copiar-pix').addEventListener('click', () => {
     const chavePix = document.getElementById('texto-pix-chave').innerText;
     navigator.clipboard.writeText(chavePix).then(() => {
         const btn = document.getElementById('btn-copiar-pix');
         const originalHTML = btn.innerHTML;
-        btn.innerHTML = '<i class="fas fa-check"></i> Chave Pix Copiada!';
+        btn.innerHTML = '<i class="fas fa-check"></i> Copiado!';
         btn.style.background = 'var(--success)';
         setTimeout(() => {
             btn.innerHTML = originalHTML;

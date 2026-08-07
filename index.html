@@ -10,11 +10,14 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @keyframes popIn { 0% { transform: scale(0.8); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+    </style>
 </head>
 <body>
 
 <!-- TELA DE LOGIN DO ADMIN -->
-<div id="tela-login-admin" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%); display: flex; justify-content: center; align-items: center; z-index: 9999;">
+<div id="tela-login-admin" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%); display: flex; justify-content: center; align-items: center; z-index: 99999;">
     <div style="background: var(--bg-card); padding: 40px; border-radius: 24px; text-align: center; max-width: 380px; width: 90%; box-shadow: var(--shadow-xl); border: 1px solid var(--border-light);">
         <i class="fas fa-user-shield" style="font-size: 50px; color: var(--accent-gold); margin-bottom: 20px;"></i>
         <h2 style="color: var(--text-primary); margin-bottom: 10px; font-weight: 800;">Acesso Restrito</h2>
@@ -40,6 +43,11 @@
                 <h1>BANK</h1>
                 <span>Gestão de Crédito & Cobranças</span>
             </div>
+        </div>
+        <!-- SINO DE NOTIFICAÇÃO DE COMPROVANTES -->
+        <div onclick="abrirPainelComprovantes()" style="position: relative; cursor: pointer; background: rgba(255,255,255,0.1); padding: 12px; border-radius: 10px; transition: 0.3s;">
+            <i class="fas fa-receipt" style="color: var(--accent-gold); font-size: 20px;"></i>
+            <span id="badge-notificacao" style="position: absolute; top: -5px; right: -5px; background: var(--danger); color: white; font-size: 11px; font-weight: bold; padding: 3px 7px; border-radius: 50%; display: none;">0</span>
         </div>
     </div>
 
@@ -234,7 +242,24 @@
     </div>
 </div>
 
-<div id="meuModal" class="modal-overlay">
+<!-- MODAL DOS COMPROVANTES (Este fica no fundo, z-index normal) -->
+<div id="modalComprovantes" class="modal-overlay">
+    <div class="modal-box detalhes-box" style="max-width: 500px;">
+        <div class="modal-header">
+            <i class="fas fa-receipt"></i>
+            <h3>Central de Comprovantes</h3>
+        </div>
+        <div id="lista-comprovantes" style="max-height: 60vh; overflow-y: auto; text-align: left; margin-top: 15px; padding-right: 10px;">
+            <!-- Comprovantes renderizados via JS entrarão aqui -->
+        </div>
+        <div class="modal-actions" style="margin-top: 20px;">
+            <button class="btn-cancelar" onclick="document.getElementById('modalComprovantes').style.display='none'"><i class="fas fa-times"></i> Fechar Central</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAIS DE OPERAÇÃO PADRÃO E CONFIRMAÇÃO (z-index: 10050 FURA A TELA DE COMPROVANTES) -->
+<div id="meuModal" class="modal-overlay" style="z-index: 10050;">
     <div class="modal-box">
         <div class="modal-header"><i class="fas fa-credit-card" id="modal-icon"></i><h3 id="modal-titulo">Título</h3></div>
         <p id="modal-texto" class="modal-body">Descrição</p>
@@ -247,11 +272,23 @@
     </div>
 </div>
 
-<div id="modalDetalhes" class="modal-overlay">
+<div id="modalDetalhes" class="modal-overlay" style="z-index: 10050;">
     <div class="modal-box detalhes-box">
         <div class="modal-header"><i class="fas fa-chart-line"></i><h3 id="detalhes-titulo">Detalhes da Dívida</h3></div>
         <div id="detalhes-conteudo" class="detalhes-conteudo"></div>
         <div class="modal-actions"><button class="btn-cancelar" onclick="fecharModalDetalhes()"><i class="fas fa-arrow-left"></i> Voltar</button></div>
+    </div>
+</div>
+
+<!-- MODAL DE ALERTA PERSONALIZADO ADMIN (z-index: 10060 FURA TUDO) -->
+<div id="modalAlertaAdmin" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(10, 15, 28, 0.85); backdrop-filter: blur(5px); z-index: 10060; justify-content: center; align-items: center; padding: 20px;">
+    <div style="background: var(--bg-card, #ffffff); border-radius: 20px; padding: 30px 20px; width: 100%; max-width: 320px; text-align: center; box-shadow: var(--shadow-xl); border: 1px solid rgba(255,255,255,0.1); animation: popIn 0.3s ease-out;">
+        <div id="alerta-icone" style="font-size: 50px; margin-bottom: 15px;"></div>
+        <h3 id="alerta-titulo" style="color: var(--text-primary); font-size: 18px; font-weight: 800; margin-bottom: 8px;">Aviso</h3>
+        <p id="alerta-mensagem" style="color: var(--text-secondary); font-size: 13px; line-height: 1.5; margin-bottom: 25px;"></p>
+        <button onclick="document.getElementById('modalAlertaAdmin').style.display='none'" class="btn-banco" style="width: 100%; font-size: 14px; padding: 12px; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);">
+            OK, Entendi
+        </button>
     </div>
 </div>
 

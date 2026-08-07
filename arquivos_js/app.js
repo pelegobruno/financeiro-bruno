@@ -16,6 +16,29 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 // ==========================================
+// FUNÇÃO DE ALERTA PERSONALIZADO (NOVO)
+// ==========================================
+function mostrarAlerta(titulo, mensagem, tipo = 'info') {
+    const modal = document.getElementById('modalAlertaAdmin');
+    const icone = document.getElementById('alerta-icone');
+    
+    document.getElementById('alerta-titulo').innerText = titulo;
+    document.getElementById('alerta-mensagem').innerText = mensagem;
+    
+    if (tipo === 'sucesso') {
+        icone.innerHTML = '<i class="fas fa-check-circle" style="color: var(--success, #10b981);"></i>';
+    } else if (tipo === 'erro') {
+        icone.innerHTML = '<i class="fas fa-exclamation-circle" style="color: var(--danger, #ef4444);"></i>';
+    } else if (tipo === 'aviso') {
+        icone.innerHTML = '<i class="fas fa-exclamation-triangle" style="color: var(--warning, #f59e0b);"></i>';
+    } else {
+        icone.innerHTML = '<i class="fas fa-info-circle" style="color: var(--info, #3b82f6);"></i>';
+    }
+    
+    modal.style.display = 'flex';
+}
+
+// ==========================================
 // SEGURANÇA: LOGIN DO ADMINISTRADOR COM MEMÓRIA
 // ==========================================
 function verificarSessaoAdmin() {
@@ -23,6 +46,7 @@ function verificarSessaoAdmin() {
         document.getElementById('tela-login-admin').style.display = 'none';
         document.getElementById('painel-admin').style.display = 'block';
         carregarDadosDoFirebase();
+        carregarComprovantes();
     }
 }
 
@@ -35,6 +59,7 @@ document.getElementById('btn-entrar-admin').addEventListener('click', () => {
         document.getElementById('tela-login-admin').style.display = 'none';
         document.getElementById('painel-admin').style.display = 'block';
         carregarDadosDoFirebase(); 
+        carregarComprovantes();
     } else {
         document.getElementById('erro-admin').style.display = 'block';
     }
@@ -53,6 +78,65 @@ let listaRegistrosProcessados = [];
 let chartResumo = null;
 let chartRadar = null;
 let chartLinha = null;
+
+// ==========================================
+// CENTRAL DE COMPROVANTES PIX
+// ==========================================
+async function carregarComprovantes() {
+    try {
+        const querySnapshot = await getDocs(collection(db, "comprovantes"));
+        const lista = document.getElementById('lista-comprovantes');
+        if(!lista) return;
+        lista.innerHTML = '';
+        let pendentes = 0;
+        
+        querySnapshot.forEach(docSnap => {
+            const comp = docSnap.data();
+            if(comp.status === 'pendente') {
+                pendentes++;
+                lista.innerHTML += `
+                    <div style="border: 1px solid var(--border-light); background: var(--bg-surface); padding: 15px; border-radius: 12px; margin-bottom: 15px; box-shadow: var(--shadow-md);">
+                        <p style="margin-bottom: 5px;"><strong><i class="fas fa-user"></i> Pagador:</strong> ${comp.cliente}</p>
+                        <p style="margin-bottom: 10px; font-size: 11px; color: var(--text-muted);"><strong><i class="fas fa-clock"></i> Enviado em:</strong> ${comp.dataEnvio}</p>
+                        <img src="${comp.imagem}" style="width: 100%; border-radius: 8px; border: 1px solid var(--border-light); margin-bottom: 10px;">
+                        <button class="btn-banco" style="background: var(--success-dark); width: 100%;" onclick="baixarComprovante('${docSnap.id}')">
+                            <i class="fas fa-check-double"></i> Dar Baixa (Remover da Lista)
+                        </button>
+                    </div>
+                `;
+            }
+        });
+        
+        if(pendentes === 0) lista.innerHTML = '<p style="text-align:center; color: var(--text-muted); padding: 20px;"><i class="fas fa-inbox" style="font-size: 30px; display: block; margin-bottom: 10px;"></i>Nenhum comprovante pendente.</p>';
+        
+        const badge = document.getElementById('badge-notificacao');
+        if(badge) {
+            if(pendentes > 0) { badge.style.display = 'block'; badge.innerText = pendentes; }
+            else { badge.style.display = 'none'; }
+        }
+    } catch(e) { console.log("Erro ao buscar comprovantes:", e); }
+}
+
+window.abrirPainelComprovantes = function() {
+    document.getElementById('modalComprovantes').style.display = 'flex';
+    carregarComprovantes();
+}
+
+window.baixarComprovante = function(id) {
+    // Usando o modal customizado para não usar o confirm() nativo do navegador
+    abrirModal(
+        "Baixa de Comprovante", 
+        "Confirma que verificou o valor na sua conta bancária e deseja dar baixa neste comprovante?", 
+        "var(--success-dark)", 
+        async () => {
+            await updateDoc(doc(db, "comprovantes", id), { status: 'verificado' });
+            carregarComprovantes();
+            fecharModal();
+            mostrarAlerta("Baixa Realizada", "O comprovante foi arquivado com sucesso.", "sucesso");
+        }, 
+        false
+    );
+}
 
 // ==========================================
 // FUNÇÕES DE CONTROLE DE MODAIS
@@ -92,7 +176,7 @@ async function verDetalhes(id, nome) {
         const docRef = doc(db, "registros", id);
         const docSnap = await getDoc(docRef); 
         
-        if (!docSnap.exists()) return alert("Operação não localizada no servidor.");
+        if (!docSnap.exists()) return mostrarAlerta("Erro", "Operação não localizada no servidor.", "erro");
         const registro = { id: docSnap.id, ...docSnap.data() };
         
         const historico = registro.historico || [];
@@ -160,7 +244,7 @@ async function verDetalhes(id, nome) {
         `;
         
         if (historico.length > 0) {
-            html += `<h4 style="margin: 20px 0 10px 0; color: var(--primary); font-weight: 800; font-size: 13px; text-transform: uppercase;"> Histórico Contábil</h4>`;
+            html += `<h4 style="margin: 20px 0 10px 0; color: var(--primary); font-weight: 800; font-size: 13px; text-transform: uppercase;"><i class="fas fa-history"></i> Histórico Contábil</h4>`;
             historico.forEach(item => {
                 const valorColor = item.tipo === 'taxa' ? 'positivo' : 'negativo';
                 const sinal = item.tipo === 'taxa' ? '+' : '-';
@@ -214,7 +298,6 @@ async function carregarDadosDoFirebase() {
         querySnapshot.forEach((doc) => {
             const reg = doc.data(); reg.id = doc.id;
             
-            // Corrige o bug de Timezone que avança a data pegando a data EXATA digitada
             const partesData = reg.data_vencimento.split('-');
             const dataVencimentoOriginal = new Date(partesData[0], partesData[1] - 1, partesData[2]);
             dataVencimentoOriginal.setHours(0, 0, 0, 0);
@@ -229,7 +312,6 @@ async function carregarDadosDoFirebase() {
             const isQuitado = valorPago >= (dividaOriginal - 0.01);
 
             let parcelasPagas = 0;
-            // Se for carnê e houver pagamento, avança os meses
             if (!isQuitado && parcelas > 1 && valorPago > 0) {
                 parcelasPagas = Math.floor((valorPago + 0.01) / valorParcelaOriginal);
                 if (parcelasPagas > parcelas) parcelasPagas = parcelas;
@@ -253,7 +335,6 @@ async function carregarDadosDoFirebase() {
             let saldoDevedor = Math.max(0, dividaTotal - valorPago);
             const valorParcelaAtual = dividaTotal / parcelas;
 
-            // Datas Formatadas para exibição clara na tabela
             const strOriginal = `${String(dataVencimentoOriginal.getDate()).padStart(2, '0')}/${String(dataVencimentoOriginal.getMonth() + 1).padStart(2, '0')}/${dataVencimentoOriginal.getFullYear()}`;
             const strEfetiva = `${String(dataVencimentoEfetiva.getDate()).padStart(2, '0')}/${String(dataVencimentoEfetiva.getMonth() + 1).padStart(2, '0')}/${dataVencimentoEfetiva.getFullYear()}`;
 
@@ -311,7 +392,6 @@ function renderizarTabela(dados) {
         let parcelasRestantes = reg.parcelas - reg.parcelasPagas;
         let infoParcelas = (reg.parcelas > 1 && !reg.isQuitado) ? `<span class="info-extra">Restam ${parcelasRestantes}x de R$ ${reg.valorParcelaAtual.toFixed(2)}</span>` : "";
 
-        // Mostra a data efetiva e avisa se pulou de mês por pagamento de parcela!
         let dataExibicao = reg.dataOriginalStr;
         if (reg.parcelasPagas > 0 && !reg.isQuitado) {
             dataExibicao = `${reg.dataEfetivaStr} <br><span style="font-size: 10px; color: var(--accent-gold); font-weight: bold;">(Próx. Parcela)</span>`;
@@ -421,7 +501,7 @@ async function salvarRegistro() {
     const acrescimo = parseFloat(document.getElementById('acrescimo').value) || 0, parcelas = parseInt(document.getElementById('parcelas').value) || 1;
     const data_vencimento = document.getElementById('data_vencimento').value;
 
-    if(!descricao || isNaN(valor) || !data_vencimento) return alert("Preencha Nome, Valor e Vencimento.");
+    if(!descricao || isNaN(valor) || !data_vencimento) return mostrarAlerta("Atenção", "Preencha Nome, Valor Original e Vencimento.", "aviso");
     const dados = { tipo, descricao, valor, taxa_juros, acrescimo_manual: acrescimo, parcelas, data_vencimento, valor_pago: 0, historico: [] };
 
     try {
@@ -432,7 +512,8 @@ async function salvarRegistro() {
         document.getElementById('taxa_juros').value = ''; document.getElementById('acrescimo').value = '';
         document.getElementById('parcelas').value = 1; document.getElementById('data_vencimento').value = '';
         verificarParcelas(); carregarDadosDoFirebase();
-    } catch (e) { alert("Erro ao gravar."); } 
+        mostrarAlerta("Operação Concluída", "Lançamento registrado com sucesso na base de dados.", "sucesso");
+    } catch (e) { mostrarAlerta("Erro", "Erro ao gravar lançamento no servidor.", "erro"); } 
     finally { btn.disabled = false; btn.innerHTML = '<i class="fas fa-save"></i> Registrar Cobrança'; }
 }
 
@@ -452,6 +533,7 @@ async function adicionarAcrescimo(id, nome) {
         await updateDoc(doc(db, "registros", id), { acrescimo_manual: increment(valorNum) });
         await adicionarAoHistorico(id, 'taxa', `Lançamento de Taxa Avulsa`, valorNum);
         fecharModal(); carregarDadosDoFirebase();
+        mostrarAlerta("Taxa Lançada", `Taxa extraordinária aplicada ao cliente ${nome}.`, "sucesso");
     }, true);
 }
 
@@ -462,17 +544,19 @@ async function registrarPagamento(id, nome) {
         await updateDoc(doc(db, "registros", id), { valor_pago: increment(valorNum) });
         await adicionarAoHistorico(id, 'pagamento', `Entrada de capital (Amortização)`, valorNum);
         fecharModal(); carregarDadosDoFirebase();
+        mostrarAlerta("Pagamento Registrado", `Amortização lançada no fluxo de caixa.`, "sucesso");
     }, true);
 }
 
 function deletarRegistro(id, nome) {
     abrirModal("Exclusão de Operação", `ATENÇÃO: Deseja expurgar a operação de ${nome}?`, "var(--danger-dark)", async () => {
         await deleteDoc(doc(db, "registros", id)); fecharModal(); carregarDadosDoFirebase();
+        mostrarAlerta("Exclusão Confirmada", "A operação foi removida do sistema.", "aviso");
     }, false);
 }
 
 // ==========================================
-// CÉREBRO CENTRAL DE INTELIGÊNCIA ARTIFICIAL (RESTAURO 100%)
+// CÉREBRO CENTRAL DE INTELIGÊNCIA ARTIFICIAL
 // ==========================================
 function atualizarListaClientesIA() {
     const selectIA = document.getElementById('ia-cliente-select');
@@ -739,7 +823,7 @@ function mostrarErroIA(mensagem) {
 }
 
 // ==========================================
-// EXPORTAÇÃO GLOBAL
+// EXPORTAÇÃO GLOBAL PARA EVENTOS INLINE
 // ==========================================
 window.analisarClienteComIA = iniciarAnaliseIA;
 window.salvarRegistro = salvarRegistro; 
@@ -753,5 +837,7 @@ window.deletarRegistro = deletarRegistro;
 window.filtrarInterface = filtrarInterface; 
 window.verDetalhes = verDetalhes;
 window.copiarAnaliseIA = copiarAnaliseIA;
+window.abrirPainelComprovantes = abrirPainelComprovantes;
+window.baixarComprovante = baixarComprovante;
 
 verificarParcelas();
