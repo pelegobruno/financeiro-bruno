@@ -220,11 +220,11 @@ function processarDadosCliente() {
     }
     scoreSaude = Math.round(Math.max(0, Math.min(100, scoreSaude)));
 
-    // ATUALIZA O CARD DE SCORE NA TELA
+    // ATUALIZA O CARD DE SCORE NA TELA (SÓ O NÚMERO)
     const elScore = document.getElementById('cliente-score');
     const elScoreTexto = document.getElementById('cliente-score-texto');
     if (elScore && elScoreTexto) {
-        elScore.innerText = `${scoreSaude} / 100`;
+        elScore.innerText = `${scoreSaude}`; 
         if (scoreSaude >= 80) {
             elScore.style.color = 'var(--success, #10b981)';
             elScoreTexto.innerText = "Reputação Excelente";
