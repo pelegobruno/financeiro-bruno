@@ -1,7 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, getDoc, updateDoc, doc, increment, deleteDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-// Configurações do Firebase
 const firebaseConfig = {
     apiKey: "AIzaSyCrNmckgyxPHWY2F_mIACKxVnrtidqJOXA",
     authDomain: "financeiro-brunno.firebaseapp.com",
@@ -16,7 +15,7 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 // ==========================================
-// FUNÇÃO DE ALERTA PERSONALIZADO (NOVO)
+// FUNÇÃO DE ALERTA PERSONALIZADO
 // ==========================================
 function mostrarAlerta(titulo, mensagem, tipo = 'info') {
     const modal = document.getElementById('modalAlertaAdmin');
@@ -39,7 +38,7 @@ function mostrarAlerta(titulo, mensagem, tipo = 'info') {
 }
 
 // ==========================================
-// SEGURANÇA: LOGIN DO ADMINISTRADOR COM MEMÓRIA
+// SEGURANÇA E INÍCIO
 // ==========================================
 function verificarSessaoAdmin() {
     if(sessionStorage.getItem('adminLogado') === 'true') {
@@ -78,64 +77,98 @@ let listaRegistrosProcessados = [];
 let chartResumo = null;
 let chartRadar = null;
 let chartLinha = null;
+let visualizandoArquivados = false; // Controle do Histórico de Comprovantes
 
 // ==========================================
-// CENTRAL DE COMPROVANTES PIX
+// CENTRAL DE COMPROVANTES PIX (AGORA COM HISTÓRICO)
 // ==========================================
+window.alternarComprovantes = function() {
+    visualizandoArquivados = !visualizandoArquivados;
+    const btn = document.getElementById('btn-toggle-arquivados');
+    if(visualizandoArquivados) {
+        btn.innerHTML = '<i class="fas fa-inbox"></i> Ver Pendentes';
+        document.getElementById('titulo-comprovantes').innerText = "Histórico (Aprovados)";
+    } else {
+        btn.innerHTML = '<i class="fas fa-archive"></i> Histórico';
+        document.getElementById('titulo-comprovantes').innerText = "Central de Comprovantes";
+    }
+    carregarComprovantes();
+}
+
 async function carregarComprovantes() {
     try {
         const querySnapshot = await getDocs(collection(db, "comprovantes"));
         const lista = document.getElementById('lista-comprovantes');
         if(!lista) return;
         lista.innerHTML = '';
-        let pendentes = 0;
+        let count = 0;
+        let pendentesGlobais = 0; 
         
         querySnapshot.forEach(docSnap => {
             const comp = docSnap.data();
-            if(comp.status === 'pendente') {
-                pendentes++;
+            
+            // O sino vermelho sempre conta os pendentes
+            if (comp.status === 'pendente') {
+                pendentesGlobais++;
+            }
+
+            const statusDesejado = visualizandoArquivados ? 'verificado' : 'pendente';
+            
+            if(comp.status === statusDesejado) {
+                count++;
+                let acaoHtml = '';
+                
+                // Se está pendente, mostra botão Dar Baixa. Se arquivado, mostra selo Verde.
+                if (statusDesejado === 'pendente') {
+                    acaoHtml = `<button class="btn-banco" style="background: var(--success-dark); width: 100%;" onclick="baixarComprovante('${docSnap.id}')"><i class="fas fa-check-double"></i> Dar Baixa (Remover da Lista)</button>`;
+                } else {
+                    acaoHtml = `<div style="text-align: center; color: var(--success); font-weight: bold; padding: 10px; background: rgba(16, 185, 129, 0.1); border-radius: 8px; border: 1px dashed var(--success);"><i class="fas fa-check-circle"></i> Comprovante Verificado</div>`;
+                }
+
                 lista.innerHTML += `
                     <div style="border: 1px solid var(--border-light); background: var(--bg-surface); padding: 15px; border-radius: 12px; margin-bottom: 15px; box-shadow: var(--shadow-md);">
                         <p style="margin-bottom: 5px;"><strong><i class="fas fa-user"></i> Pagador:</strong> ${comp.cliente}</p>
                         <p style="margin-bottom: 10px; font-size: 11px; color: var(--text-muted);"><strong><i class="fas fa-clock"></i> Enviado em:</strong> ${comp.dataEnvio}</p>
                         <img src="${comp.imagem}" style="width: 100%; border-radius: 8px; border: 1px solid var(--border-light); margin-bottom: 10px;">
-                        <button class="btn-banco" style="background: var(--success-dark); width: 100%;" onclick="baixarComprovante('${docSnap.id}')">
-                            <i class="fas fa-check-double"></i> Dar Baixa (Remover da Lista)
-                        </button>
+                        ${acaoHtml}
                     </div>
                 `;
             }
         });
         
-        if(pendentes === 0) lista.innerHTML = '<p style="text-align:center; color: var(--text-muted); padding: 20px;"><i class="fas fa-inbox" style="font-size: 30px; display: block; margin-bottom: 10px;"></i>Nenhum comprovante pendente.</p>';
+        if(count === 0) {
+            const textoVazio = visualizandoArquivados ? 'Nenhum comprovante no histórico.' : 'Nenhum comprovante pendente.';
+            const iconeVazio = visualizandoArquivados ? 'fa-archive' : 'fa-inbox';
+            lista.innerHTML = `<p style="text-align:center; color: var(--text-muted); padding: 20px;"><i class="fas ${iconeVazio}" style="font-size: 30px; display: block; margin-bottom: 10px;"></i>${textoVazio}</p>`;
+        }
         
         const badge = document.getElementById('badge-notificacao');
         if(badge) {
-            if(pendentes > 0) { badge.style.display = 'block'; badge.innerText = pendentes; }
+            if(pendentesGlobais > 0) { badge.style.display = 'block'; badge.innerText = pendentesGlobais; }
             else { badge.style.display = 'none'; }
         }
     } catch(e) { console.log("Erro ao buscar comprovantes:", e); }
 }
 
 window.abrirPainelComprovantes = function() {
+    // Sempre abre na aba de Pendentes primeiro
+    visualizandoArquivados = false;
+    const btn = document.getElementById('btn-toggle-arquivados');
+    if(btn) btn.innerHTML = '<i class="fas fa-archive"></i> Histórico';
+    const tit = document.getElementById('titulo-comprovantes');
+    if(tit) tit.innerText = "Central de Comprovantes";
+    
     document.getElementById('modalComprovantes').style.display = 'flex';
     carregarComprovantes();
 }
 
 window.baixarComprovante = function(id) {
-    // Usando o modal customizado para não usar o confirm() nativo do navegador
-    abrirModal(
-        "Baixa de Comprovante", 
-        "Confirma que verificou o valor na sua conta bancária e deseja dar baixa neste comprovante?", 
-        "var(--success-dark)", 
-        async () => {
-            await updateDoc(doc(db, "comprovantes", id), { status: 'verificado' });
-            carregarComprovantes();
-            fecharModal();
-            mostrarAlerta("Baixa Realizada", "O comprovante foi arquivado com sucesso.", "sucesso");
-        }, 
-        false
-    );
+    abrirModal("Baixa de Comprovante", "Confirma que verificou o valor na sua conta bancária e deseja dar baixa neste comprovante?", "var(--success-dark)", async () => {
+        await updateDoc(doc(db, "comprovantes", id), { status: 'verificado' });
+        carregarComprovantes();
+        fecharModal();
+        mostrarAlerta("Baixa Realizada", "O comprovante foi arquivado no histórico com sucesso.", "sucesso");
+    }, false);
 }
 
 // ==========================================
@@ -839,5 +872,6 @@ window.verDetalhes = verDetalhes;
 window.copiarAnaliseIA = copiarAnaliseIA;
 window.abrirPainelComprovantes = abrirPainelComprovantes;
 window.baixarComprovante = baixarComprovante;
+window.alternarComprovantes = alternarComprovantes; // Adicionado aqui!
 
 verificarParcelas();

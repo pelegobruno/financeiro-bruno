@@ -18,7 +18,7 @@ let clienteLogado = null;
 let listaRegistrosGeral = [];
 
 // ==========================================
-// FUNÇÃO DE ALERTA PERSONALIZADO (NOVO)
+// FUNÇÃO DE ALERTA PERSONALIZADO
 // ==========================================
 function mostrarAlerta(titulo, mensagem, tipo = 'info') {
     const modal = document.getElementById('modalAlerta');
@@ -212,12 +212,30 @@ function processarDadosCliente() {
         });
     });
 
+    // CÁLCULO DO SCORE DO CLIENTE
     let scoreSaude = 100;
     if (totalDevido > 0) {
         const percentualInadimplente = (totalDevido / ((totalOriginal + totalTaxasAvulsas) || 1)) * 100;
         scoreSaude = 100 - percentualInadimplente - (qtdAtrasadas * 15) + (qtdQuitadas * 5);
     }
-    scoreSaude = Math.max(0, Math.min(100, scoreSaude));
+    scoreSaude = Math.round(Math.max(0, Math.min(100, scoreSaude)));
+
+    // ATUALIZA O CARD DE SCORE NA TELA
+    const elScore = document.getElementById('cliente-score');
+    const elScoreTexto = document.getElementById('cliente-score-texto');
+    if (elScore && elScoreTexto) {
+        elScore.innerText = `${scoreSaude} / 100`;
+        if (scoreSaude >= 80) {
+            elScore.style.color = 'var(--success, #10b981)';
+            elScoreTexto.innerText = "Reputação Excelente";
+        } else if (scoreSaude >= 50) {
+            elScore.style.color = 'var(--warning, #f59e0b)';
+            elScoreTexto.innerText = "Atenção aos Prazos";
+        } else {
+            elScore.style.color = 'var(--danger, #ef4444)';
+            elScoreTexto.innerText = "Risco de Bloqueio";
+        }
+    }
 
     let limiteSugerido = 0;
     let basePagamento = totalPago > 0 ? totalPago : 0;
@@ -231,7 +249,6 @@ function processarDadosCliente() {
     document.getElementById('cliente-devido').innerText = `R$ ${totalDevido.toFixed(2)}`;
     document.getElementById('cliente-pago').innerText = `R$ ${totalPago.toFixed(2)}`;
     const displayLimite = `R$ ${limiteSugerido.toFixed(2)}`;
-    document.getElementById('cliente-limite').innerText = displayLimite;
     document.getElementById('display-limite-solicitar').innerText = displayLimite;
 
     renderizarTabelaCliente(dadosTabela);
